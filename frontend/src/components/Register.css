@@ -1,0 +1,170 @@
+:root {
+  --register-primary: #6c5ce7;
+  --register-primary-dark: #5649c0;
+  --register-secondary: #fd79a8;
+  --register-dark: #2d3436;
+  --register-light: #f5f6fa;
+  --register-gray: #636e72;
+  --register-error: #d63031;
+  --register-border-radius: 16px;
+  --register-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  --register-transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.register-container {
+  max-width: 480px;
+  margin: 3rem auto;
+  font-family: "Poppins", sans-serif;
+}
+
+.register-card {
+  background: white;
+  border-radius: var(--register-border-radius);
+  box-shadow: var(--register-shadow);
+  padding: 2rem;
+  position: relative;
+}
+
+.register-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.register-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+  color: var(--register-primary-dark);
+}
+
+.register-subtitle {
+  font-weight: 300;
+  color: var(--register-gray);
+}
+
+.register-form-group {
+  margin-bottom: 1.75rem;
+}
+
+.register-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--register-dark);
+}
+
+.register-input-wrapper {
+  position: relative;
+}
+
+.register-icon {
+  position: absolute;
+  top: 50%;
+  left: 1rem;
+  transform: translateY(-50%);
+  color: #8a92a6;
+  font-size: 1.25rem;
+  pointer-events: none;
+}
+
+.register-input {
+  width: 100%;
+  padding: 0.9rem 1rem 0.9rem 3rem;
+  font-size: 1rem;
+  border: 2px solid #d1d9e6;
+  border-radius: 12px;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease;
+}
+
+.register-input:focus {
+  outline: none;
+  border-color: var(--register-primary);
+  box-shadow: 0 0 8px rgba(108, 92, 231, 0.5);
+}
+
+.register-error {
+  color: var(--register-error);
+  font-size: 0.875rem;
+  margin-top: 0.3rem;
+}
+
+.register-success {
+  color: var(--register-primary);
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.register-btn {
+  width: 100%;
+  padding: 1.1rem;
+  background: linear-gradient(
+    135deg,
+    var(--register-primary),
+    var(--register-primary-dark)
+  );
+  border: none;
+  border-radius: 14px;
+  color: white;
+  font-weight: 700;
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(108, 92, 231, 0.35);
+  transition: all 0.3s ease;
+}
+
+.register-btn:disabled {
+  background: #b7aefb;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.register-btn:hover:not(:disabled) {
+  box-shadow: 0 15px 30px rgba(108, 92, 231, 0.5);
+}
+
+.register-footer {
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--register-gray);
+}
+
+.register-footer a,
+.register-forgot-password {
+  color: var(--register-primary);
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.register-footer a:hover,
+.register-forgot-password:hover {
+  color: var(--register-primary-dark);
+  text-decoration: underline;
+}
+
+.otp-input-group {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.otp-input {
+  width: 3.5rem;
+  height: 3.5rem;
+  text-align: center;
+  font-size: 1.5rem;
+  border: 2px solid #d1d9e6;
+  border-radius: 8px;
+  transition: border-color 0.3s ease;
+}
+
+.otp-input:focus {
+  outline: none;
+  border-color: var(--register-primary);
+  box-shadow: 0 0 8px rgba(108, 92, 231, 0.5);
+}

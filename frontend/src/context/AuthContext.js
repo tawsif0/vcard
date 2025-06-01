@@ -7,7 +7,11 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
+    let storedUser = localStorage.getItem("user");
+    if (!storedUser || storedUser === "undefined") {
+      localStorage.removeItem("user");
+      storedUser = null;
+    }
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
@@ -33,7 +37,7 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         loading,
-        isAuthenticated: !!user
+        isAuthenticated: !!user,
       }}
     >
       {children}
