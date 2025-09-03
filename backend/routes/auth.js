@@ -7,12 +7,10 @@ const nodemailer = require("nodemailer");
 
 // Setup nodemailer transporter (use your SMTP config)
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
-  secure: process.env.SMTP_SECURE === "true",
+  service: "gmail", // Use 'gmail' for Gmail
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: "arbeittechnology@gmail.com", // your Gmail email
+    pass: "fgtg sbxq hyrr phby", // your Gmail password (use App Password if 2FA is enabled)
   },
 });
 
@@ -34,6 +32,7 @@ router.post("/register", async (req, res) => {
     name = name.trim();
     password = password.trim();
 
+    // Validate email format
     if (!/\S+@\S+\.\S+/.test(email)) {
       return sendError(res, 400, "Invalid email format.");
     }
@@ -42,11 +41,11 @@ router.post("/register", async (req, res) => {
       return sendError(res, 400, "Password must be at least 8 characters.");
     }
 
-    // Check if user already exists in main User collection
+    // Check if user already exists in the main User collection
     const existingUser = await User.findOne({ email });
     if (existingUser) return sendError(res, 400, "User already exists.");
 
-    // Delete pending registration if exists (atomic find & delete)
+    // Delete any existing pending registration
     await PendingUser.findOneAndDelete({ email });
 
     // Hash password
@@ -71,19 +70,24 @@ router.post("/register", async (req, res) => {
     await pending.save();
 
     // Send OTP email
-    await transporter.sendMail({
-      from: `"YourAppName" <${process.env.SMTP_USER}>`,
-      to: email,
-      subject: "Your Registration OTP Code",
-      text: `Your OTP code is ${otpCode}. It will expire in 15 minutes.`,
-      html: `<p>Your OTP code is <b>${otpCode}</b>. It will expire in 15 minutes.</p>`,
-    });
+    try {
+      await transporter.sendMail({
+        from: `"YourAppName" <${process.env.SMTP_USER}>`,
+        to: email,
+        subject: "Your Registration OTP Code",
+        text: `Your OTP code is ${otpCode}. It will expire in 15 minutes.`,
+        html: `<p>Your OTP code is <b>${otpCode}</b>. It will expire in 15 minutes.</p>`,
+      });
+    } catch (emailError) {
+      console.error("Error sending OTP email:", emailError); // log error details
+      return sendError(res, 500, "Failed to send OTP email.");
+    }
 
     return res.json({
       msg: "OTP sent to your email. Please verify to complete registration.",
     });
-  } catch {
-    // Don't leak error details in response
+  } catch (err) {
+    console.error("Error during registration:", err);
     return sendError(res);
   }
 });

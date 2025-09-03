@@ -8,8 +8,11 @@ const pendingUserSchema = new mongoose.Schema({
     code: String,
     expiresAt: Date,
   },
-  createdAt: { type: Date, default: Date.now, expires: 900 }, // auto-delete after 15 min (900 seconds)
+  createdAt: { type: Date, default: Date.now }, // Default to current date and time
 });
+
+// Create a TTL index on createdAt to automatically remove documents after 15 minutes (900 seconds)
+pendingUserSchema.index({ createdAt: 1 }, { expireAfterSeconds: 900 });
 
 module.exports = mongoose.model(
   "PendingUser",

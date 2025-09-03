@@ -5,13 +5,18 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true },
   password: { type: String, required: true },
   role: { type: String, enum: ["user", "admin"], default: "user" },
-  isVerified: { type: Boolean, default: false }, // To track if email verified
+  isVerified: { type: Boolean, default: false },
   otp: {
-    code: String, // Stores OTP code
-    expiresAt: Date, // Expiry datetime of OTP
+    code: String,
+    expiresAt: Date,
   },
 
   profile: {
+    userType: {
+      type: String,
+      enum: ["student", "businessman", "official"],
+      default: "student",
+    },
     fullName: String,
     jobTitle: String,
     department: String,
@@ -23,6 +28,26 @@ const userSchema = new mongoose.Schema({
     facebook: String,
     bio: String,
     avatar: String,
+    avatarOption: {
+      type: String,
+      enum: ["none", "robot", "cat", "custom"],
+      default: "none",
+    },
+    avatarCustomUrl: String,
+    profilePicture: String,
+
+    // Student specific fields
+    institutionName: String,
+    aimInLife: String,
+    hobby: String,
+
+    // Businessman specific fields
+    businessName: String,
+    businessType: String,
+    position: String,
+
+    // Official specific fields
+    officialPosition: String,
   },
 
   createdAt: { type: Date, default: Date.now },
