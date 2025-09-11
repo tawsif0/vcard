@@ -1,4 +1,25 @@
 @import "tailwindcss";
+::-webkit-scrollbar {
+  width: 1px;
+  height: 1px;
+}
+
+/* Scrollbar handle */
+::-webkit-scrollbar-thumb {
+  background-color: rgba(200, 98, 255, 0.603);
+  border-radius: 10px;
+}
+
+/* Scrollbar on hover */
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(200, 98, 255, 0.76);
+}
+
+/* Scrollbar track */
+::-webkit-scrollbar-track {
+  background-color: #020617;
+  border-radius: 10px;
+}
 .glass-card {
   background: rgba(15, 23, 42, 0.7) !important;
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37),
@@ -70,4 +91,19 @@
 
 .glowing-text {
   animation: glow 1.5s ease-in-out infinite;
+}
+/* Optional smooth animation */
+@keyframes modalSlideIn {
+  0% {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal {
+  animation: modalSlideIn 0.3s ease-out;
 }

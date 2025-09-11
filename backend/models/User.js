@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema({
   profile: {
     userType: {
       type: String,
-      enum: ["student", "businessman", "official"],
+      enum: ["student", "businessman", "serviceHolder", "contentCreator"],
       default: "student",
     },
     fullName: String,
@@ -35,6 +35,20 @@ const userSchema = new mongoose.Schema({
     },
     avatarCustomUrl: String,
     profilePicture: String,
+    gender: String,
+    whatsapp: String,
+    homeAddress: String,
+    showHomeAddress: { type: Boolean, default: false },
+    officeAddress: String,
+    showOfficeAddress: { type: Boolean, default: false },
+    officialPhone: String,
+    companyWebsite: String,
+    socialMedias: [
+      {
+        platform: String,
+        url: String,
+      },
+    ],
 
     // Student specific fields
     institutionName: String,
@@ -46,7 +60,7 @@ const userSchema = new mongoose.Schema({
     businessType: String,
     position: String,
 
-    // Official specific fields
+    // Service holder specific fields
     officialPosition: String,
   },
 

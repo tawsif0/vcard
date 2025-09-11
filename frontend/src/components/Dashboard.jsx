@@ -20,7 +20,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen w-full bg-[#020617] py-8 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="min-h-screen w-full bg-[#020617] py-8 px-4 sm:px-6 lg:px-8 relative overflow-visible">
       {/* Animated background elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         {[...Array(3)].map((_, i) => (
@@ -124,7 +124,7 @@ const Dashboard = () => {
         {/* Quick Actions */}
 
         {/* Profile Card Section */}
-        <div className="bg-gray-900/20 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden border border-gray-700/30">
+        <div className="bg-gray-900/20 backdrop-blur-md rounded-2xl shadow-xl border border-gray-700/30">
           <div className="border-b border-gray-400/30">
             <div className="px-6 py-6 flex justify-center items-center">
               <div className="text-center">
@@ -137,7 +137,7 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
-          <div className="p-6">
+          <div>
             <ProfileCard user={user} />
           </div>
         </div>

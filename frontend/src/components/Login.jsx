@@ -104,6 +104,27 @@ const Login = () => {
       const data = await response.json();
 
       if (!response.ok) {
+        // Directly use the error message as string
+        toast.error(data.msg || "Invalid credentials");
+        return;
+      }
+
+      login(data.user, data.token);
+      window.location.href =
+        data.user.role === "admin" ? "/admin" : "/dashboard";
+    } catch (err) {
+      toast.error(err.message); // Directly use the error message here as well
+    }
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
         toast.error((prev) => ({
           ...prev,
           general: data.msg || "Invalid credentials",
@@ -151,9 +172,8 @@ const Login = () => {
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.msg || "Failed to send code");
-      setForgotMessage(
-        "If this email is registered, a reset code has been sent."
-      );
+      toast.success("If this email is registered, a reset code has been sent.");
+
       setForgotStep(2);
     } catch (err) {
       toast.error((prev) => ({ ...prev, general: err.message }));

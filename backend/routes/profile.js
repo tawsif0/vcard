@@ -110,17 +110,35 @@ router.put(
         req.body.profilePicture = req.file.path;
       }
 
+      // Parse socialMedias if it's a string
+      if (req.body.socialMedias && typeof req.body.socialMedias === "string") {
+        req.body.socialMedias = JSON.parse(req.body.socialMedias);
+      }
+
       // Handle avatar options
       if (req.body.avatarOption === "robot") {
-        req.body.avatar = `https://gravatar.com/avatar/${req.params.userId}?s=400&d=robohash&r=x`;
+        const maleUrl = "https://avatar.iran.liara.run/public/43";
+        const femaleUrl = "https://avatar.iran.liara.run/public/80";
+        const isFemale =
+          (req.body.gender || "").toString().trim().toLowerCase() === "female";
+        // Default to male if gender is missing/unknown
+        req.body.avatar = isFemale ? femaleUrl : maleUrl;
       } else if (req.body.avatarOption === "cat") {
         req.body.avatar = `https://robohash.org/${req.params.userId}?set=set4&bgset=bg1&size=400x400`;
       } else if (req.body.avatarOption === "custom") {
-        req.body.avatar = req.body.avatarCustomUrl;
+        req.body.avatar = req.body.avatarCustomUrl || "";
       } else if (req.body.avatarOption === "none") {
         req.body.avatar = "";
       }
-
+      ["showHomeAddress", "showOfficeAddress"].forEach((k) => {
+        if (k in req.body) {
+          req.body[k] =
+            req.body[k] === true ||
+            req.body[k] === "true" ||
+            req.body[k] === 1 ||
+            req.body[k] === "1";
+        }
+      });
       // Update profile fields
       user.profile = {
         ...user.profile,
@@ -183,6 +201,15 @@ router.get("/public/:userId", async (req, res) => {
       bio: user.profile.bio,
       avatar: user.profile.avatar,
       profilePicture: user.profile.profilePicture,
+      gender: user.profile.gender,
+      whatsapp: user.profile.whatsapp,
+      homeAddress: user.profile.homeAddress,
+      showHomeAddress: user.profile.showHomeAddress,
+      officeAddress: user.profile.officeAddress,
+      showOfficeAddress: user.profile.showOfficeAddress,
+      officialPhone: user.profile.officialPhone,
+      companyWebsite: user.profile.companyWebsite,
+      socialMedias: user.profile.socialMedias,
 
       // Student specific
       institutionName: user.profile.institutionName,
@@ -194,7 +221,7 @@ router.get("/public/:userId", async (req, res) => {
       businessType: user.profile.businessType,
       position: user.profile.position,
 
-      // Official specific
+      // Service holder specific
       officialPosition: user.profile.officialPosition,
     };
 
