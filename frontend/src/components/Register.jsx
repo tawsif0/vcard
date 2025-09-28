@@ -152,7 +152,7 @@ const Register = () => {
 
     // Check if all OTP digits are entered
     if (otp.some((d) => d === "")) {
-      toast.error({ otp: "Please enter the complete 4-digit code." });
+      toast.error("Please enter the complete 4-digit code.");
       return;
     }
 
@@ -161,7 +161,7 @@ const Register = () => {
 
     // Check OTP length and numeric content explicitly (extra safety)
     if (otpCode.length !== 4 || !/^\d{4}$/.test(otpCode)) {
-      toast.error({ otp: "OTP code must be exactly 4 digits." });
+      toast.error("OTP code must be exactly 4 digits.");
       return;
     }
 
@@ -183,22 +183,24 @@ const Register = () => {
 
       const data = await res.json();
       if (!res.ok) {
-        // Show OTP-specific error under OTP input
+        // Show OTP-specific error
         if (
           data.msg &&
           (data.msg.toLowerCase().includes("otp") ||
             data.msg.toLowerCase().includes("code"))
         ) {
-          toast.error({ otp: data.msg });
+          toast.error(data.msg);
         } else {
-          toast.error({ general: data.msg || "Verification failed." });
+          toast.error(data.msg || "Verification failed.");
         }
+        setLoading(false); // Add this to stop loading on error
         return;
       }
       toast.success("Registration successful! You can now login.");
       setStep(3);
     } catch (err) {
-      toast.error({ general: err.message });
+      toast.error(err.message);
+      setLoading(false); // Add this to stop loading on error
     } finally {
       setLoading(false);
     }

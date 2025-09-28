@@ -135,7 +135,8 @@ router.post("/register/verify", async (req, res) => {
       name: pending.name,
       email: pending.email,
       password: pending.passwordHash,
-      isVerified: true, // auto verified since OTP confirmed
+      isVerified: true,
+      isPremium: false,
       role: "user",
     });
 
@@ -194,7 +195,12 @@ router.post("/login", async (req, res) => {
         if (err) return sendError(res);
         return res.json({
           token,
-          user: { id: user.id, name: user.name, role: user.role },
+          user: {
+            id: user.id,
+            name: user.name,
+            role: user.role,
+            isPremium: user.isPremium, // Add this
+          },
         });
       }
     );

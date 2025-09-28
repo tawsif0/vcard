@@ -434,13 +434,6 @@ const ProfileCard = ({ user }) => {
         }}
       />
       <div>
-        <button
-          onClick={() => setShowShareModal(true)}
-          className="bg-blue-500 text-white p-2 rounded-lg"
-        >
-          Show Modal
-        </button>
-
         {/* Modal rendered outside the main content using React Portal */}
         {showShareModal &&
           ReactDOM.createPortal(

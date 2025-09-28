@@ -104,41 +104,23 @@ const Login = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        // Directly use the error message as string
         toast.error(data.msg || "Invalid credentials");
+        setIsLoading(false); // Add this to stop loading on error
         return;
       }
 
       login(data.user, data.token);
-      window.location.href =
-        data.user.role === "admin" ? "/admin" : "/dashboard";
-    } catch (err) {
-      toast.error(err.message); // Directly use the error message here as well
-    }
-    try {
-      const response = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        toast.error((prev) => ({
-          ...prev,
-          general: data.msg || "Invalid credentials",
-        }));
-        return;
+      // Fix: Redirect based on premium status and role
+      if (data.user.role === "admin") {
+        window.location.href = "/admin";
+      } else if (data.user.isPremium) {
+        window.location.href = "/dashboard"; // Will redirect to premium dashboard based on App.js logic
+      } else {
+        window.location.href = "/dashboard";
       }
-
-      login(data.user, data.token);
-      window.location.href =
-        data.user.role === "admin" ? "/admin" : "/dashboard";
     } catch (err) {
-      toast.error((prev) => ({ ...prev, general: err.message }));
-    } finally {
-      setIsLoading(false);
+      toast.error(err.message);
+      setIsLoading(false); // Add this to stop loading on error
     }
   };
 
