@@ -9,13 +9,18 @@ import Dashboard from "./components/Dashboard";
 import Navbar from "./components/Navbar";
 import { Toaster } from "react-hot-toast";
 import { FiCheckCircle, FiXCircle, FiLoader } from "react-icons/fi";
-import PremiumDashboard from "./components/Premium/PremiumDashboard";
+import PremiumDashboard from "./components/Premium/component/Dashboard/PremiumDashboard";
 function App() {
   const { user } = useContext(AuthContext);
   const location = useLocation();
 
   // Detect if the route matches /profile/:userId
   const isCardViewerRoute = /^\/profile\/[^/]+$/.test(location.pathname);
+  const hideNavbar =
+    isCardViewerRoute ||
+    location.pathname.includes("premium-dashboard") ||
+    (location.pathname === "/dashboard" && user?.isPremium);
+
   const getDashboardComponent = () => {
     if (user?.role === "admin") {
       return <AdminPanel />;
@@ -28,7 +33,7 @@ function App() {
   return (
     <div className="App">
       {/* Show Navbar only if not on CardViewer route */}
-      {!isCardViewerRoute && <Navbar />}
+      {!hideNavbar && <Navbar />}
       <Toaster
         position="top-center"
         toastOptions={{

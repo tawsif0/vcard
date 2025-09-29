@@ -107,3 +107,31 @@
 .modal {
   animation: modalSlideIn 0.3s ease-out;
 }
+/* Tailwind animations (add in globals.css) */
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.animate-slideDown {
+  animation: slideDown 0.5s ease-out;
+}
+
+@keyframes gradientText {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+.animate-gradientText {
+  background-size: 200% 200%;
+  animation: gradientText 4s ease infinite;
+}
