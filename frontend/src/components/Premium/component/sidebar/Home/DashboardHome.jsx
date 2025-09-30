@@ -18,10 +18,8 @@ const DashboardHome = () => {
 
   return (
     <div className="relative overflow-visible">
-      {/* Animated background elements (overlay) */}
-
       {/* Page content */}
-      <div className="container mx-auto relative z-10">
+      <div className="mx-auto relative z-10">
         {/* Header Section */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -35,7 +33,7 @@ const DashboardHome = () => {
             </div>
 
             {/* Premium Badge and Back Button */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center justify-center sm:justify-start gap-4">
               <button
                 onClick={() => navigate("/")}
                 className="flex items-center gap-3 bg-gray-900/20 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-gray-700/30 transition-all hover:bg-gray-800 group"
@@ -54,7 +52,8 @@ const DashboardHome = () => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 rounded-2xl p-6 text-white border border-purple-500/30 backdrop-blur-md shadow-xl">
+          {/* Card 1 */}
+          <div className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 rounded-2xl p-6 text-white border border-purple-500/30 backdrop-blur-md shadow-xl transition-all duration-300 hover:scale-102 hover:shadow-2xl hover:border-purple-400/50 cursor-pointer group">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-300">Premium Views</p>
@@ -63,13 +62,14 @@ const DashboardHome = () => {
                   <span className="text-green-400">↑ 24%</span> this month
                 </p>
               </div>
-              <div className="w-12 h-12 bg-purple-700/50 rounded-xl flex items-center justify-center">
-                <FiZap className="w-6 h-6 text-purple-300" />
+              <div className="w-12 h-12 bg-purple-700/50 rounded-xl flex items-center justify-center group-hover:bg-purple-600/50 transition-all duration-300">
+                <FiZap className="w-6 h-6 text-purple-300 group-hover:scale-110 transition-transform duration-300" />
               </div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-r from-purple-900/50 to-indigo-900/50 rounded-2xl p-6 text-white border border-purple-500/30 backdrop-blur-md shadow-xl">
+          {/* Card 2 */}
+          <div className="bg-gradient-to-r from-purple-900/50 to-indigo-900/50 rounded-2xl p-6 text-white border border-purple-500/30 backdrop-blur-md shadow-xl transition-all duration-300 hover:scale-102 hover:shadow-2xl hover:border-indigo-400/50 cursor-pointer group">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-300">Engagement Rate</p>
@@ -78,13 +78,14 @@ const DashboardHome = () => {
                   <span className="text-green-400">↑ 8%</span> higher
                 </p>
               </div>
-              <div className="w-12 h-12 bg-indigo-700/50 rounded-xl flex items-center justify-center">
-                <FiBarChart2 className="w-6 h-6 text-indigo-300" />
+              <div className="w-12 h-12 bg-indigo-700/50 rounded-xl flex items-center justify-center group-hover:bg-indigo-600/50 transition-all duration-300">
+                <FiBarChart2 className="w-6 h-6 text-indigo-300 group-hover:scale-110 transition-transform duration-300" />
               </div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-r from-blue-900/50 to-purple-900/50 rounded-2xl p-6 text-white border border-blue-500/30 backdrop-blur-md shadow-xl">
+          {/* Card 3 */}
+          <div className="bg-gradient-to-r from-blue-900/50 to-purple-900/50 rounded-2xl p-6 text-white border border-blue-500/30 backdrop-blur-md shadow-xl transition-all duration-300 hover:scale-102 hover:shadow-2xl hover:border-blue-400/50 cursor-pointer group">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-300">Connections</p>
@@ -93,114 +94,9 @@ const DashboardHome = () => {
                   <span className="text-green-400">↑ 15%</span> growth
                 </p>
               </div>
-              <div className="w-12 h-12 bg-blue-700/50 rounded-xl flex items-center justify-center">
-                <FiGlobe className="w-6 h-6 text-blue-300" />
+              <div className="w-12 h-12 bg-blue-700/50 rounded-xl flex items-center justify-center group-hover:bg-blue-600/50 transition-all duration-300">
+                <FiGlobe className="w-6 h-6 text-blue-300 group-hover:scale-110 transition-transform duration-300" />
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Premium Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {[
-            {
-              title: "Advanced Analytics",
-              desc: "Detailed insights & metrics",
-              icon: <FiBarChart2 />,
-              color: "purple",
-            },
-            {
-              title: "Custom Themes",
-              desc: "Exclusive designs",
-              icon: <FiSettings />,
-              color: "pink",
-            },
-            {
-              title: "Priority Support",
-              desc: "24/7 dedicated help",
-              icon: <FiHeadphones />,
-              color: "blue",
-            },
-            {
-              title: "Enhanced Security",
-              desc: "Advanced protection",
-              icon: <FiShield />,
-              color: "green",
-            },
-            {
-              title: "Performance Boost",
-              desc: "Faster loading",
-              icon: <FiZap />,
-              color: "orange",
-            },
-            {
-              title: "Global Reach",
-              desc: "Worldwide visibility",
-              icon: <FiGlobe />,
-              color: "teal",
-            },
-          ].map((feature, idx) => (
-            <button
-              key={idx}
-              className={`bg-gradient-to-r from-gray-800 to-gray-900 rounded-2xl p-6 shadow-xl border border-${feature.color}-500/30 backdrop-blur-md hover:border-${feature.color}-500/70 hover:shadow-2xl transition-all duration-300 group w-full !text-left`}
-            >
-              <div className="flex !items-start justify-between">
-                <div>
-                  <p className="text-md text-gray-400">{feature.title}</p>
-                  <p className="mt-2.5 text-xl font-bold text-white">
-                    {feature.desc}
-                  </p>
-                </div>
-                <div
-                  className={`w-16 h-16 bg-${feature.color}-900/30 rounded-xl flex items-center justify-center group-hover:bg-${feature.color}-900/50 transition-colors`}
-                >
-                  <div
-                    className={`w-8 h-8 text-${feature.color}-400 group-hover:text-white`}
-                  >
-                    {feature.icon}
-                  </div>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {/* Premium Benefits Section */}
-        <div className="bg-gray-900/20 backdrop-blur-md rounded-2xl shadow-xl border border-gray-700/30 p-8">
-          <div className="text-center mb-8">
-            <h2 className="text-4xl font-semibold text-gray-200">
-              Premium Benefits
-            </h2>
-            <p className="mt-2 text-xl text-gray-400">
-              Unlock the full potential of your digital presence
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-gradient-to-r from-purple-900/30 to-transparent rounded-2xl p-6 border border-purple-500/20">
-              <h3 className="text-xl font-semibold text-white mb-3">
-                Exclusive Features
-              </h3>
-              <ul className="text-gray-300 space-y-2">
-                <li>• Advanced analytics dashboard</li>
-                <li>• Custom theme library</li>
-                <li>• Priority customer support</li>
-                <li>• Enhanced security features</li>
-                <li>• Performance optimization</li>
-              </ul>
-            </div>
-
-            <div className="bg-gradient-to-r from-blue-900/30 to-transparent rounded-2xl p-6 border border-blue-500/20">
-              <h3 className="text-xl font-semibold text-white mb-3">
-                Growth Tools
-              </h3>
-              <ul className="text-gray-300 space-y-2">
-                <li>• Unlimited profile views</li>
-                <li>• Advanced sharing options</li>
-                <li>• Custom domain support</li>
-                <li>• Team collaboration features</li>
-                <li>• API access</li>
-              </ul>
             </div>
           </div>
         </div>

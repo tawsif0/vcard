@@ -182,7 +182,7 @@ const PremiumDashboard = () => {
 
       {/* Content - Maintains original PC design structure */}
       <div
-        className={`flex w-full bg-gray-800 rounded-3xl md:rounded-3xl shadow-2xl overflow-hidden border border-gray-700 relative ${
+        className={`flex w-full bg-[#020617] rounded-3xl md:rounded-3xl shadow-2xl overflow-hidden border border-gray-700 relative ${
           isMobile ? "mt-16 mb-2 h-[calc(100vh-5rem)]" : "h-[95vh]"
         } `}
       >
@@ -197,7 +197,7 @@ const PremiumDashboard = () => {
         </div>
 
         {/* Main Content Area - Exactly like original PC version */}
-        <div className="flex-1 h-full overflow-auto p-4 md:p-6 relative">
+        <div className="flex-1 h-full overflow-auto p-4 md:p-4 relative">
           {/* Animated blobs - Same as original */}
           <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
             {[...Array(3)].map((_, i) => (
