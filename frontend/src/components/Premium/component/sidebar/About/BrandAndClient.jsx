@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import { FiEdit, FiEye, FiSave, FiPlus, FiTrash2 } from "react-icons/fi";
 import { toast } from "react-hot-toast";
+import AuthContext from "../../../../../context/AuthContext"; // Adjust import path as needed
 
-const BrandAndClient = ({ user }) => {
+const BrandAndClient = () => {
+  const { checkAuth } = useContext(AuthContext);
   const [brands, setBrands] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -36,6 +38,7 @@ const BrandAndClient = ({ user }) => {
 
       if (!token) {
         setIsLoading(false);
+        toast.error("Please log in to access this page");
         return;
       }
 
@@ -54,6 +57,14 @@ const BrandAndClient = ({ user }) => {
           },
         });
 
+        if (response.status === 401) {
+          // Token expired or invalid
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          toast.error("Session expired. Please log in again.");
+          return;
+        }
+
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(
@@ -69,7 +80,11 @@ const BrandAndClient = ({ user }) => {
         }
       } catch (err) {
         console.error("Fetch error:", err);
-        toast.error(err.message);
+        if (err.message.includes("401")) {
+          toast.error("Authentication failed. Please log in again.");
+        } else {
+          toast.error(err.message);
+        }
         setBrands([]);
       } finally {
         setIsLoading(false);
@@ -82,7 +97,7 @@ const BrandAndClient = ({ user }) => {
     return () => {
       hasFetchedRef.current = false;
     };
-  }, []); // Remove user dependency
+  }, []);
 
   const handleBrandChange = (id, field, value) => {
     setBrands((prev) =>
@@ -114,6 +129,13 @@ const BrandAndClient = ({ user }) => {
   };
 
   const handleSave = async () => {
+    // Check authentication before saving
+    const isAuthenticated = await checkAuth();
+    if (!isAuthenticated) {
+      toast.error("Please log in to save changes");
+      return;
+    }
+
     setIsSaving(true);
 
     try {
@@ -126,6 +148,13 @@ const BrandAndClient = ({ user }) => {
         },
         body: JSON.stringify(brands),
       });
+
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        toast.error("Session expired. Please log in again.");
+        return;
+      }
 
       if (response.ok) {
         toast.success("Brands saved successfully!");
@@ -157,16 +186,8 @@ const BrandAndClient = ({ user }) => {
       </div>
     );
   }
-
   return (
     <div className="w-full py-6 px-4 relative overflow-visible">
-      <div
-        className="absolute inset-0 z-0"
-        style={{
-          backgroundImage: `radial-gradient(circle 500px at 50% 100px, rgba(192,92,246,0.4), transparent)`,
-        }}
-      />
-
       <div className="mx-auto max-w-7xl relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="bg-gray-900/20 backdrop-blur-md rounded-2xl shadow-xl p-6 lg:col-span-2 border border-gray-700/30">

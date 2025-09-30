@@ -4,13 +4,13 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const PendingUser = require("../models/PendingUser");
 const nodemailer = require("nodemailer");
-
+const { auth } = require("../middlewares/auth");
 // Setup nodemailer transporter (use your SMTP config)
 const transporter = nodemailer.createTransport({
-  service: "gmail", // Use 'gmail' for Gmail
+  service: "gmail",
   auth: {
-    user: "arbeittechnology@gmail.com", // your Gmail email
-    pass: "fgtg sbxq hyrr phby", // your Gmail password (use App Password if 2FA is enabled)
+    user: "arbeittechnology@gmail.com",
+    pass: "fgtg sbxq hyrr phby",
   },
 });
 
@@ -18,6 +18,38 @@ const transporter = nodemailer.createTransport({
 function sendError(res, status = 500, msg = "Server error") {
   return res.status(status).json({ msg });
 }
+
+// POST /verify - Verify token and get user data
+router.get("/verify", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isPremium: user.isPremium,
+        isVerified: user.isVerified,
+      },
+    });
+  } catch (error) {
+    console.error("Token verification error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error during token verification",
+    });
+  }
+});
 
 // POST /register - Save pending user and send OTP
 router.post("/register", async (req, res) => {
@@ -79,7 +111,7 @@ router.post("/register", async (req, res) => {
         html: `<p>Your OTP code is <b>${otpCode}</b>. It will expire in 15 minutes.</p>`,
       });
     } catch (emailError) {
-      console.error("Error sending OTP email:", emailError); // log error details
+      console.error("Error sending OTP email:", emailError);
       return sendError(res, 500, "Failed to send OTP email.");
     }
 
@@ -146,7 +178,13 @@ router.post("/register/verify", async (req, res) => {
     await PendingUser.deleteOne({ email });
 
     // Issue JWT token
-    const payload = { user: { id: newUser.id, role: newUser.role } };
+    const payload = {
+      user: {
+        id: newUser.id,
+        role: newUser.role,
+      },
+    };
+
     jwt.sign(
       payload,
       process.env.JWT_SECRET,
@@ -156,11 +194,19 @@ router.post("/register/verify", async (req, res) => {
         return res.json({
           msg: "Verification successful. Account activated.",
           token,
-          user: { id: newUser.id, name: newUser.name, role: newUser.role },
+          user: {
+            id: newUser.id,
+            name: newUser.name,
+            email: newUser.email,
+            role: newUser.role,
+            isPremium: newUser.isPremium,
+            isVerified: newUser.isVerified,
+          },
         });
       }
     );
-  } catch {
+  } catch (error) {
+    console.error("Verification error:", error);
     return sendError(res);
   }
 });
@@ -186,7 +232,13 @@ router.post("/login", async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return sendError(res, 400, "Invalid credentials.");
 
-    const payload = { user: { id: user.id, role: user.role } };
+    const payload = {
+      user: {
+        id: user.id,
+        role: user.role,
+      },
+    };
+
     jwt.sign(
       payload,
       process.env.JWT_SECRET,
@@ -194,18 +246,21 @@ router.post("/login", async (req, res) => {
       (err, token) => {
         if (err) return sendError(res);
         return res.json({
+          success: true,
           token,
           user: {
             id: user.id,
             name: user.name,
             email: user.email,
             role: user.role,
-            isPremium: user.isPremium, // Add this
+            isPremium: user.isPremium,
+            isVerified: user.isVerified,
           },
         });
       }
     );
-  } catch {
+  } catch (error) {
+    console.error("Login error:", error);
     return sendError(res);
   }
 });

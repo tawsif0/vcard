@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import {
   FiUser,
   FiMail,
@@ -18,9 +18,11 @@ import {
   FiLink,
 } from "react-icons/fi";
 import { toast } from "react-hot-toast";
+import AuthContext from "../../../../../context/AuthContext"; // Adjust import path as needed
 
 // eslint-disable-next-line no-unused-vars
 const AboutMe = ({ user }) => {
+  const { checkAuth } = useContext(AuthContext);
   const [aboutData, setAboutData] = useState({
     name: "",
     email: "",
@@ -66,6 +68,7 @@ const AboutMe = ({ user }) => {
 
       if (!token) {
         setIsLoading(false);
+        toast.error("Please log in to access this page");
         return;
       }
 
@@ -83,6 +86,14 @@ const AboutMe = ({ user }) => {
             "x-auth-token": token,
           },
         });
+
+        if (response.status === 401) {
+          // Token expired or invalid
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          toast.error("Session expired. Please log in again.");
+          return;
+        }
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
@@ -102,7 +113,11 @@ const AboutMe = ({ user }) => {
         }
       } catch (err) {
         console.error("Fetch error:", err);
-        toast.error(err.message);
+        if (err.message.includes("401")) {
+          toast.error("Authentication failed. Please log in again.");
+        } else {
+          toast.error(err.message);
+        }
         // Set default data on error to prevent infinite loading
         setAboutData({
           name: "",
@@ -126,7 +141,7 @@ const AboutMe = ({ user }) => {
     return () => {
       hasFetchedRef.current = false;
     };
-  }, []); // Remove user dependency
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -137,6 +152,13 @@ const AboutMe = ({ user }) => {
   };
 
   const handleSave = async () => {
+    // Check authentication before saving
+    const isAuthenticated = await checkAuth();
+    if (!isAuthenticated) {
+      toast.error("Please log in to save changes");
+      return;
+    }
+
     setIsSaving(true);
 
     try {
@@ -149,6 +171,13 @@ const AboutMe = ({ user }) => {
         },
         body: JSON.stringify(aboutData),
       });
+
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        toast.error("Session expired. Please log in again.");
+        return;
+      }
 
       if (response.ok) {
         toast.success("About information saved successfully!");
@@ -281,17 +310,17 @@ const AboutMe = ({ user }) => {
       </div>
     );
   }
-
   return (
-    <div className="w-full py-6 px-4 relative overflow-visible">
-      <div
-        className="absolute inset-0 z-0"
-        style={{
-          backgroundImage: `radial-gradient(circle 500px at 50% 100px, rgba(192,92,246,0.4), transparent)`,
-        }}
-      />
-
-      <div className="mx-auto max-w-7xl relative z-10">
+    <div className="w-full py-8 px-4 sm:px-6 lg:px-8 relative overflow-visible">
+      <div className="mx-auto relative z-10">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">
+            Personal Information
+          </h1>
+          <p className="text-gray-300 text-lg sm:text-xl max-w-2xl mx-auto">
+            Provide your information to look perfect
+          </p>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           {/* Left Column - Form */}
           <div className="bg-gray-900/20 backdrop-blur-md rounded-2xl shadow-xl p-6 lg:col-span-2 border border-gray-700/30">
