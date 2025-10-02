@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import {
   FiEdit,
   FiEye,
@@ -9,8 +9,10 @@ import {
   FiX,
 } from "react-icons/fi";
 import { toast } from "react-hot-toast";
+import AuthContext from "../../../../../context/AuthContext"; // Adjust import path as needed
 
-const PricingPlan = ({ user }) => {
+const PricingPlan = () => {
+  const { checkAuth } = useContext(AuthContext);
   const [pricingPlans, setPricingPlans] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -44,6 +46,7 @@ const PricingPlan = ({ user }) => {
 
       if (!token) {
         setIsLoading(false);
+        toast.error("Please log in to access this page");
         return;
       }
 
@@ -62,6 +65,14 @@ const PricingPlan = ({ user }) => {
           },
         });
 
+        if (response.status === 401) {
+          // Token expired or invalid
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          toast.error("Session expired. Please log in again.");
+          return;
+        }
+
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(
@@ -77,7 +88,11 @@ const PricingPlan = ({ user }) => {
         }
       } catch (err) {
         console.error("Fetch error:", err);
-        toast.error(err.message);
+        if (err.message.includes("401")) {
+          toast.error("Authentication failed. Please log in again.");
+        } else {
+          toast.error(err.message);
+        }
         setPricingPlans([]);
       } finally {
         setIsLoading(false);
@@ -90,7 +105,7 @@ const PricingPlan = ({ user }) => {
     return () => {
       hasFetchedRef.current = false;
     };
-  }, []); // Remove user dependency
+  }, []);
 
   const handlePlanChange = (id, field, value) => {
     setPricingPlans((prev) =>
@@ -137,10 +152,6 @@ const PricingPlan = ({ user }) => {
   };
 
   const removePlan = (id) => {
-    if (pricingPlans.length <= 1) {
-      toast.error("At least one pricing plan is required");
-      return;
-    }
     setPricingPlans((prev) => prev.filter((plan) => plan.id !== id));
   };
 
@@ -200,6 +211,13 @@ const PricingPlan = ({ user }) => {
   };
 
   const handleSave = async () => {
+    // Check authentication before saving
+    const isAuthenticated = await checkAuth();
+    if (!isAuthenticated) {
+      toast.error("Please log in to save changes");
+      return;
+    }
+
     setIsSaving(true);
 
     try {
@@ -212,6 +230,13 @@ const PricingPlan = ({ user }) => {
         },
         body: JSON.stringify(pricingPlans),
       });
+
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        toast.error("Session expired. Please log in again.");
+        return;
+      }
 
       if (response.ok) {
         toast.success("Pricing plans saved successfully!");
@@ -248,14 +273,12 @@ const PricingPlan = ({ user }) => {
 
   return (
     <div className="w-full py-6 px-4 relative overflow-visible">
-      <div
-        className="absolute inset-0 z-0"
-        style={{
-          backgroundImage: `radial-gradient(circle 500px at 50% 100px, rgba(192,92,246,0.4), transparent)`,
-        }}
-      />
-
       <div className="mx-auto max-w-7xl relative z-10">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">
+            Pricing
+          </h1>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="bg-gray-900/20 backdrop-blur-md rounded-2xl shadow-xl p-6 lg:col-span-2 border border-gray-700/30">
             <div className="flex justify-between items-center mb-6">
@@ -265,10 +288,13 @@ const PricingPlan = ({ user }) => {
               </h2>
               <button
                 onClick={addNewPlan}
-                className="px-4 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition flex items-center gap-2"
+                className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 flex items-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
               >
-                <FiPlus className="w-4 h-4" />
-                Add Plan
+                <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                <span className="relative flex items-center gap-2">
+                  <FiPlus className="w-4 h-4" />
+                  Add Plan
+                </span>
               </button>
             </div>
 
@@ -315,10 +341,32 @@ const PricingPlan = ({ user }) => {
                         type="text"
                         className="w-full px-4 py-3 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl text-white focus:border-gray-500 transition"
                         value={plan.price}
-                        onChange={(e) =>
-                          handlePlanChange(plan.id, "price", e.target.value)
-                        }
-                        placeholder="$99"
+                        onChange={(e) => {
+                          // Only allow numbers and decimal point
+                          const value = e.target.value;
+                          // Regex to allow numbers and optional decimal point
+                          if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                            handlePlanChange(plan.id, "price", value);
+                          }
+                        }}
+                        onBlur={(e) => {
+                          // Format the price on blur - ensure it's a proper number
+                          const value = e.target.value;
+                          if (value && !isNaN(parseFloat(value))) {
+                            // Remove leading zeros and format to 2 decimal places if needed
+                            const formattedValue = parseFloat(value).toString();
+                            handlePlanChange(plan.id, "price", formattedValue);
+                          } else if (value === "") {
+                            handlePlanChange(plan.id, "price", "");
+                          } else {
+                            // If invalid, clear the field
+                            handlePlanChange(plan.id, "price", "");
+                            toast.error(
+                              "Please enter a valid number for price"
+                            );
+                          }
+                        }}
+                        placeholder="99.99"
                       />
                     </div>
 
@@ -348,10 +396,13 @@ const PricingPlan = ({ user }) => {
                       </label>
                       <button
                         onClick={() => addFeature(plan.id)}
-                        className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition flex items-center gap-1"
+                        className="px-3 py-1 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-lg text-sm hover:from-cyan-700 hover:to-teal-700 transition flex items-center gap-1 group relative overflow-hidden"
                       >
-                        <FiPlus className="w-3 h-3" />
-                        Add Feature
+                        <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                        <span className="relative flex items-center gap-1">
+                          <FiPlus className="w-3 h-3" />
+                          Add Feature
+                        </span>
                       </button>
                     </div>
 
@@ -413,10 +464,13 @@ const PricingPlan = ({ user }) => {
                   </p>
                   <button
                     onClick={addNewPlan}
-                    className="px-6 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition flex items-center gap-2 mx-auto"
+                    className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 flex items-center gap-2 mx-auto group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
                   >
-                    <FiPlus className="w-4 h-4" />
-                    Add Your First Pricing Plan
+                    <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                    <span className="relative flex items-center gap-2">
+                      <FiPlus className="w-4 h-4" />
+                      Add Your First Pricing Plan
+                    </span>
                   </button>
                 </div>
               )}
@@ -426,9 +480,9 @@ const PricingPlan = ({ user }) => {
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group relative overflow-hidden"
+                className="w-full px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
               >
-                <span className="absolute inset-0 bg-white/10 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
+                <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                 <span className="relative flex items-center justify-center gap-2">
                   {isSaving ? (
                     <>
@@ -446,84 +500,124 @@ const PricingPlan = ({ user }) => {
             </div>
           </div>
 
+          {/* Updated Live Preview Section with Services-like styling */}
           <div className="bg-gray-900/20 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-gray-700/30 sticky top-8 self-start overflow-y-auto">
             <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
               <FiEye className="w-5 h-5" />
               Live Preview
             </h2>
 
-            <div className="space-y-6">
-              {pricingPlans.length > 0 ? (
-                pricingPlans.map((plan) => (
-                  <div
-                    key={plan.id}
-                    className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200"
-                  >
-                    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white text-center">
-                      <h3 className="text-xl font-bold mb-2">
-                        {plan.name || "Plan Name"}
-                      </h3>
-                      <div className="flex items-baseline justify-center gap-1">
-                        <span className="text-3xl font-bold">
-                          {plan.price || "$0"}
-                        </span>
-                        <span className="text-indigo-100 text-sm">
-                          /
-                          {plan.period === "month"
-                            ? "mo"
-                            : plan.period === "year"
-                            ? "yr"
-                            : plan.period === "hour"
-                            ? "hr"
-                            : "one-time"}
-                        </span>
-                      </div>
-                    </div>
+            <div className="bg-gradient-to-br from-gray-800 via-gray-900 to-gray-950 rounded-2xl shadow-2xl overflow-hidden transform hover:scale-[1.01] transition-all duration-500 border border-gray-600/30 hover:border-cyan-500/30">
+              {/* Sophisticated Header */}
+              <div className="relative bg-gradient-to-r from-slate-800 via-gray-800 to-slate-900 p-6 overflow-hidden border-b border-gray-700/50">
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-purple-500/5"></div>
+                <div className="absolute top-4 right-4 w-20 h-20 bg-cyan-500/10 rounded-full blur-xl"></div>
+                <div className="absolute bottom-4 left-4 w-16 h-16 bg-purple-500/10 rounded-full blur-lg"></div>
 
-                    <div className="p-6">
-                      <ul className="space-y-3 mb-6">
-                        {plan.features.map((feature) => (
-                          <li
-                            key={feature.id}
-                            className={`flex items-center gap-3 ${
-                              feature.included
-                                ? "text-gray-700"
-                                : "text-gray-400 line-through"
-                            }`}
-                          >
-                            {feature.included ? (
-                              <FiCheck className="w-4 h-4 text-green-500 flex-shrink-0" />
-                            ) : (
-                              <FiX className="w-4 h-4 text-red-500 flex-shrink-0" />
-                            )}
-                            <span className="text-sm">
-                              {feature.text || "Feature description"}
+                <div className="relative z-10">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg border border-cyan-400/30">
+                      <FiEye className="w-7 h-7 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-white mb-1">
+                        Pricing Plans
+                      </h2>
+                      <p className="text-cyan-200 text-sm opacity-80">
+                        Choose the perfect plan for your needs
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6">
+                {pricingPlans.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-6">
+                    {pricingPlans.map((plan) => (
+                      <div
+                        key={plan.id}
+                        className="group relative p-6 bg-gradient-to-r from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700/50 hover:border-cyan-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/5"
+                      >
+                        {/* Plan Header */}
+                        <div className="text-center mb-4">
+                          <h3 className="text-xl font-bold text-white mb-2">
+                            {plan.name || "Plan Name"}
+                          </h3>
+                          <div className="flex items-baseline justify-center gap-1 mb-3">
+                            <span className="text-3xl font-bold text-cyan-400">
+                              {plan.price || "$0"}
                             </span>
-                          </li>
-                        ))}
-                      </ul>
+                            <span className="text-cyan-200 text-sm">
+                              /
+                              {plan.period === "month"
+                                ? "mo"
+                                : plan.period === "year"
+                                ? "yr"
+                                : plan.period === "hour"
+                                ? "hr"
+                                : "one-time"}
+                            </span>
+                          </div>
+                        </div>
 
-                      <button className="w-full bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition duration-300 text-sm">
-                        Get Started
-                      </button>
-                    </div>
+                        {/* Features List */}
+                        <div className="space-y-3 mb-6">
+                          {plan.features.map((feature) => (
+                            <div
+                              key={feature.id}
+                              className={`flex items-center gap-3 ${
+                                feature.included
+                                  ? "text-gray-300"
+                                  : "text-gray-500 line-through"
+                              }`}
+                            >
+                              {feature.included ? (
+                                <FiCheck className="w-4 h-4 text-green-500 flex-shrink-0" />
+                              ) : (
+                                <FiX className="w-4 h-4 text-red-500 flex-shrink-0" />
+                              )}
+                              <span className="text-sm">
+                                {feature.text || "Feature description"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Get Started Button */}
+                        <button className="w-full group relative bg-gradient-to-r from-cyan-600 to-teal-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30">
+                          <span className="relative z-10 flex items-center justify-center gap-2">
+                            Get Started
+                          </span>
+                          <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ))
-              ) : (
-                <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-                  <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white text-center">
-                    <h3 className="text-xl font-bold mb-2">No Plans Yet</h3>
-                  </div>
-                  <div className="p-6 text-center">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <FiEye className="w-6 h-6 text-gray-400" />
-                    </div>
-                    <p className="text-gray-500">
+                ) : (
+                  <div className="text-center py-8 px-4 border-2 border-dashed border-gray-600/50 rounded-xl bg-gray-800/30">
+                    <FiEye className="w-8 h-8 text-gray-500 mx-auto mb-3" />
+                    <p className="text-gray-400 italic">
+                      No pricing plans to display
+                    </p>
+                    <p className="text-gray-500 text-sm mt-1">
                       Add pricing plans to see them here
                     </p>
                   </div>
-                </div>
-              )}
+                )}
+
+                {/* Enhanced Contact Button - Only show if there are pricing plans */}
+                {pricingPlans.length > 0 && (
+                  <div className="pt-6 mt-6">
+                    <button className="w-full group relative bg-gradient-to-r from-cyan-600 to-teal-600 text-white px-6 py-4 rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30">
+                      <span className="relative z-10 flex items-center justify-center gap-3">
+                        Contact Sales
+                      </span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

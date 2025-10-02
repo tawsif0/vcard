@@ -1,7 +1,59 @@
 const express = require("express");
 const router = express.Router();
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 const About = require("../models/About");
 const { auth } = require("../middlewares/auth");
+
+// Ensure upload directory exists
+const uploadsDir = path.join(__dirname, "../uploads/services");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadsDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(
+      null,
+      "service-" + uniqueSuffix + path.extname(file.originalname).toLowerCase()
+    );
+  },
+});
+
+// Update the fileFilter in multer configuration
+const fileFilter = (req, file, cb) => {
+  // Check file type
+  if (!file.mimetype.startsWith("image/")) {
+    return cb(new Error("Only image files are allowed!"), false);
+  }
+
+  // Check file extension
+  const fileExt = path.extname(file.originalname).toLowerCase();
+  const allowedExt = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"];
+
+  if (!allowedExt.includes(fileExt)) {
+    return cb(
+      new Error("Only JPEG, PNG, GIF, WebP, and BMP images are allowed!"),
+      false
+    );
+  }
+
+  cb(null, true);
+};
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: fileFilter,
+});
 
 // Get all about data for a user
 router.get("/", auth, async (req, res) => {
@@ -206,6 +258,61 @@ router.patch("/testimonials", auth, async (req, res) => {
       error: error.message,
     });
   }
+});
+
+// Upload image endpoint - FIXED with proper error handling
+router.post("/upload", auth, upload.single("image"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No file uploaded or file type not supported",
+      });
+    }
+
+    // Construct the image URL - use relative path for frontend
+    const imageUrl = `/uploads/services/${req.file.filename}`;
+
+    console.log("Image uploaded successfully:", {
+      filename: req.file.filename,
+      size: req.file.size,
+      url: imageUrl,
+    });
+
+    res.json({
+      success: true,
+      message: "Image uploaded successfully",
+      imageUrl: imageUrl,
+    });
+  } catch (error) {
+    console.error("Upload error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error during upload",
+      error: error.message,
+    });
+  }
+});
+
+// Error handling middleware for multer
+router.use((error, req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    if (error.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({
+        success: false,
+        message: "File too large. Maximum size is 5MB.",
+      });
+    }
+  }
+
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+
+  next();
 });
 
 module.exports = router;

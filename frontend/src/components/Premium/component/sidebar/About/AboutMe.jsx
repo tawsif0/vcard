@@ -284,7 +284,7 @@ const AboutMe = ({ user }) => {
       return (
         <p
           key={index}
-          className="text-gray-700 leading-relaxed text-sm mb-3"
+          className="text-white leading-relaxed text-sm mb-3"
           dangerouslySetInnerHTML={{ __html: formattedLine }}
         />
       );
@@ -317,9 +317,9 @@ const AboutMe = ({ user }) => {
           <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">
             Personal Information
           </h1>
-          <p className="text-gray-300 text-lg sm:text-xl max-w-2xl mx-auto">
+          {/* <p className="text-gray-300 text-lg sm:text-xl max-w-2xl mx-auto">
             Provide your information to look perfect
-          </p>
+          </p> */}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           {/* Left Column - Form */}
@@ -329,7 +329,7 @@ const AboutMe = ({ user }) => {
               Edit About Information
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-6">
               <div className="form-group">
                 <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
                   <FiUser className="w-4 h-4" />
@@ -515,7 +515,7 @@ const AboutMe = ({ user }) => {
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group relative overflow-hidden"
+                className="w-full group relative bg-gradient-to-r from-cyan-600 to-teal-600 text-white px-6 py-4 rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
               >
                 <span className="absolute inset-0 bg-white/10 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
                 <span className="relative flex items-center justify-center gap-2">
@@ -542,180 +542,246 @@ const AboutMe = ({ user }) => {
               Live Preview
             </h2>
 
-            <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
-                <h2 className="text-2xl font-bold mb-2">About Me</h2>
+            <div className="bg-gradient-to-br from-gray-800 via-gray-900 to-gray-950 rounded-2xl shadow-2xl overflow-hidden transform hover:scale-[1.01] transition-all duration-500 border border-gray-600/30 hover:border-cyan-500/30">
+              {/* Sophisticated Header */}
+              <div className="relative bg-gradient-to-r from-slate-800 via-gray-800 to-slate-900 p-6 overflow-hidden border-b border-gray-700/50">
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-purple-500/5"></div>
+                <div className="absolute top-4 right-4 w-20 h-20 bg-cyan-500/10 rounded-full blur-xl"></div>
+                <div className="absolute bottom-4 left-4 w-16 h-16 bg-purple-500/10 rounded-full blur-lg"></div>
+
+                <div className="relative z-10">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg border border-cyan-400/30">
+                      <FiUser className="w-7 h-7 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-white mb-1">
+                        About Me
+                      </h2>
+                      <p className="text-cyan-200 text-sm opacity-80">
+                        Digital Portfolio
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="p-6">
                 {/* Description Section */}
-                <div className="mb-8">
-                  <div className="space-y-3">
-                    {aboutData.description ? (
-                      parseFormattedText(aboutData.description)
-                    ) : (
-                      <p className="text-gray-500 italic p-3 bg-gray-50 rounded-lg">
-                        No description added yet
-                      </p>
-                    )}
+                <div className="mb-8 relative">
+                  <div className="absolute -left-2 top-0 w-0.5 h-full bg-gradient-to-b from-cyan-500 to-purple-500 rounded-full"></div>
+                  <div className="pl-5">
+                    <h3 className="text-lg font-semibold text-cyan-300 mb-4 flex items-center gap-3">
+                      <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                      Professional Bio
+                    </h3>
+                    <div className="space-y-4">
+                      {aboutData.description ? (
+                        <div className="text-gray-300 leading-relaxed text-sm space-y-3">
+                          {parseFormattedText(aboutData.description)}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 px-4 border-2 border-dashed border-gray-600/50 rounded-xl bg-gray-800/30">
+                          <FiEdit className="w-8 h-8 text-gray-500 mx-auto mb-3" />
+                          <p className="text-gray-400 italic">
+                            Your story begins here
+                          </p>
+                          <p className="text-gray-500 text-sm mt-1">
+                            Add your description to see it come alive
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Personal Information - Single Column Layout */}
-                <div className="pt-4 border-t border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                    Personal Information
+                {/* Personal Information - Modern Dark Layout */}
+                <div className="pt-6 border-t border-gray-700/50">
+                  <h3 className="text-lg font-semibold text-cyan-300 mb-6 flex items-center gap-3">
+                    <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                    Personal Details
                   </h3>
 
-                  <div className="space-y-4">
+                  <div className="grid gap-3">
                     {/* Name */}
                     {aboutData.name && (
-                      <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="bg-indigo-100 p-2 rounded-lg">
-                          <FiUser className="w-5 h-5 text-indigo-600" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm text-gray-500 font-medium mb-1">
-                            Full Name
-                          </p>
-                          <p className="text-base text-gray-800 font-medium">
-                            {aboutData.name}
-                          </p>
+                      <div className="group relative p-4 bg-gradient-to-r from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700/50 hover:border-cyan-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/5">
+                        <div className="flex items-center gap-4">
+                          <div className="bg-gradient-to-br from-cyan-600 to-teal-600 p-3 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                            <FiUser className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-cyan-300 font-medium mb-1 uppercase tracking-wider">
+                              Full Name
+                            </p>
+                            <p className="text-base text-white font-semibold">
+                              {aboutData.name}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}
 
                     {/* Email */}
                     {aboutData.email && (
-                      <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="bg-indigo-100 p-2 rounded-lg">
-                          <FiMail className="w-5 h-5 text-indigo-600" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm text-gray-500 font-medium mb-1">
-                            Email
-                          </p>
-                          <p className="text-base text-gray-800 break-all">
-                            {aboutData.email}
-                          </p>
+                      <div className="group relative p-4 bg-gradient-to-r from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700/50 hover:border-purple-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/5">
+                        <div className="flex items-center gap-4">
+                          <div className="bg-gradient-to-br from-purple-600 to-indigo-600 p-3 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                            <FiMail className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-purple-300 font-medium mb-1 uppercase tracking-wider">
+                              Email
+                            </p>
+                            <p className="text-base text-white break-all font-medium">
+                              {aboutData.email}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}
 
                     {/* Phone */}
                     {aboutData.phone && (
-                      <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="bg-indigo-100 p-2 rounded-lg">
-                          <FiPhone className="w-5 h-5 text-indigo-600" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm text-gray-500 font-medium mb-1">
-                            Phone
-                          </p>
-                          <p className="text-base text-gray-800">
-                            {aboutData.phone}
-                          </p>
+                      <div className="group relative p-4 bg-gradient-to-r from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700/50 hover:border-emerald-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/5">
+                        <div className="flex items-center gap-4">
+                          <div className="bg-gradient-to-br from-emerald-600 to-green-600 p-3 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                            <FiPhone className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-emerald-300 font-medium mb-1 uppercase tracking-wider">
+                              Phone
+                            </p>
+                            <p className="text-base text-white font-semibold">
+                              {aboutData.phone}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}
 
                     {/* Address */}
                     {aboutData.address && (
-                      <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="bg-indigo-100 p-2 rounded-lg">
-                          <FiMapPin className="w-5 h-5 text-indigo-600" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm text-gray-500 font-medium mb-1">
-                            Address
-                          </p>
-                          <p className="text-base text-gray-800">
-                            {aboutData.address}
-                          </p>
+                      <div className="group relative p-4 bg-gradient-to-r from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700/50 hover:border-orange-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/5">
+                        <div className="flex items-center gap-4">
+                          <div className="bg-gradient-to-br from-orange-600 to-red-600 p-3 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                            <FiMapPin className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-orange-300 font-medium mb-1 uppercase tracking-wider">
+                              Location
+                            </p>
+                            <p className="text-base text-white font-medium">
+                              {aboutData.address}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}
 
                     {/* Education */}
                     {aboutData.education && (
-                      <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="bg-indigo-100 p-2 rounded-lg">
-                          <FiBook className="w-5 h-5 text-indigo-600" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm text-gray-500 font-medium mb-1">
-                            Education
-                          </p>
-                          <p className="text-base text-gray-800">
-                            {aboutData.education}
-                          </p>
+                      <div className="group relative p-4 bg-gradient-to-r from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700/50 hover:border-pink-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-pink-500/5">
+                        <div className="flex items-center gap-4">
+                          <div className="bg-gradient-to-br from-pink-600 to-rose-600 p-3 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                            <FiBook className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-pink-300 font-medium mb-1 uppercase tracking-wider">
+                              Education
+                            </p>
+                            <p className="text-base text-white font-medium">
+                              {aboutData.education}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}
 
                     {/* Languages */}
                     {aboutData.languages && (
-                      <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="bg-indigo-100 p-2 rounded-lg">
-                          <FiMessageSquare className="w-5 h-5 text-indigo-600" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm text-gray-500 font-medium mb-1">
-                            Languages
-                          </p>
-                          <p className="text-base text-gray-800">
-                            {aboutData.languages}
-                          </p>
+                      <div className="group relative p-4 bg-gradient-to-r from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700/50 hover:border-teal-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-teal-500/5">
+                        <div className="flex items-center gap-4">
+                          <div className="bg-gradient-to-br from-teal-600 to-cyan-600 p-3 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                            <FiMessageSquare className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-teal-300 font-medium mb-1 uppercase tracking-wider">
+                              Languages
+                            </p>
+                            <p className="text-base text-white font-medium">
+                              {aboutData.languages}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}
 
                     {/* Nationality */}
                     {aboutData.nationality && (
-                      <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="bg-indigo-100 p-2 rounded-lg">
-                          <FiFlag className="w-5 h-5 text-indigo-600" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm text-gray-500 font-medium mb-1">
-                            Nationality
-                          </p>
-                          <p className="text-base text-gray-800">
-                            {aboutData.nationality}
-                          </p>
+                      <div className="group relative p-4 bg-gradient-to-r from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700/50 hover:border-amber-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/5">
+                        <div className="flex items-center gap-4">
+                          <div className="bg-gradient-to-br from-amber-600 to-yellow-600 p-3 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                            <FiFlag className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-amber-300 font-medium mb-1 uppercase tracking-wider">
+                              Nationality
+                            </p>
+                            <p className="text-base text-white font-medium">
+                              {aboutData.nationality}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}
 
                     {/* Freelance Status */}
                     {aboutData.freelance && (
-                      <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="bg-indigo-100 p-2 rounded-lg">
-                          <FiAward className="w-5 h-5 text-indigo-600" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm text-gray-500 font-medium mb-1">
-                            Freelance Status
-                          </p>
-                          <p
-                            className={`text-base font-medium ${
+                      <div className="group relative p-4 bg-gradient-to-r from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700/50 hover:border-green-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/5">
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={`p-3 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300 ${
                               aboutData.freelance === "Available"
-                                ? "text-green-600"
-                                : "text-red-600"
+                                ? "bg-gradient-to-br from-green-600 to-emerald-600"
+                                : "bg-gradient-to-br from-red-600 to-rose-600"
                             }`}
                           >
-                            {aboutData.freelance}
-                          </p>
+                            <FiAward className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-300 font-medium mb-1 uppercase tracking-wider">
+                              Availability
+                            </p>
+                            <p
+                              className={`text-base font-semibold ${
+                                aboutData.freelance === "Available"
+                                  ? "text-emerald-400"
+                                  : "text-rose-400"
+                              }`}
+                            >
+                              {aboutData.freelance}
+                              {aboutData.freelance === "Available" && (
+                                <span className="ml-3 text-xs bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-full border border-emerald-500/30">
+                                  Open for projects
+                                </span>
+                              )}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Contact Button */}
-                <div className="pt-6 border-t border-gray-200 mt-6">
-                  <button className="w-full bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition duration-300 text-sm">
-                    Contact Me
+                {/* Enhanced Contact Button */}
+                <div className="pt-6 mt-6">
+                  <button className="w-full group relative bg-gradient-to-r from-cyan-600 to-teal-600 text-white px-6 py-4 rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30">
+                    <span className="relative z-10 flex items-center justify-center gap-3">
+                      Start Conversation
+                      <FiMail className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   </button>
                 </div>
               </div>

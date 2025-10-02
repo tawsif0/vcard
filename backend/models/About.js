@@ -25,7 +25,7 @@ const pricingPlanSchema = new mongoose.Schema({
     //required: true,
   },
   price: {
-    type: String,
+    type: Number,
     //required: true,
   },
   period: {
@@ -44,7 +44,8 @@ const serviceSchema = new mongoose.Schema({
     type: String,
     //required: true,
   },
-  icon: {
+  image: {
+    // Changed from 'icon' to 'image'
     type: String,
     //required: true,
   },
@@ -82,7 +83,13 @@ const testimonialSchema = new mongoose.Schema({
     type: String,
     //required: true,
   },
-  role: {
+  position: {
+    // CHANGED: Added position field
+    type: String,
+    //required: true,
+  },
+  company: {
+    // CHANGED: Added company field
     type: String,
     //required: true,
   },

@@ -1,11 +1,21 @@
-import React, { useState, useEffect, useRef } from "react";
-import { FiEdit, FiEye, FiSave, FiPlus, FiTrash2 } from "react-icons/fi";
+import React, { useState, useEffect, useRef, useContext } from "react";
+import {
+  FiEdit,
+  FiEye,
+  FiSave,
+  FiPlus,
+  FiTrash2,
+  FiUpload,
+} from "react-icons/fi";
 import { toast } from "react-hot-toast";
+import AuthContext from "../../../../../context/AuthContext";
 
-const Services = ({ user }) => {
+const Services = () => {
+  const { checkAuth } = useContext(AuthContext);
   const [services, setServices] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState({});
   const hasFetchedRef = useRef(false);
 
   // Loading timeout hook
@@ -36,10 +46,10 @@ const Services = ({ user }) => {
 
       if (!token) {
         setIsLoading(false);
+        toast.error("Please log in to access this page");
         return;
       }
 
-      // Prevent multiple fetches
       if (hasFetchedRef.current) {
         return;
       }
@@ -54,6 +64,13 @@ const Services = ({ user }) => {
           },
         });
 
+        if (response.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          toast.error("Session expired. Please log in again.");
+          return;
+        }
+
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(
@@ -63,13 +80,16 @@ const Services = ({ user }) => {
 
         const data = await response.json();
         if (data.success) {
-          // Handle both possible data structures
           const servicesData = data.data.services || [];
           setServices(servicesData);
         }
       } catch (err) {
         console.error("Fetch error:", err);
-        toast.error(err.message);
+        if (err.message.includes("401")) {
+          toast.error("Authentication failed. Please log in again.");
+        } else {
+          toast.error(err.message);
+        }
         setServices([]);
       } finally {
         setIsLoading(false);
@@ -78,11 +98,10 @@ const Services = ({ user }) => {
 
     fetchServicesData();
 
-    // Cleanup function to reset fetch flag when component unmounts
     return () => {
       hasFetchedRef.current = false;
     };
-  }, []); // Remove user dependency
+  }, []);
 
   const handleServiceChange = (id, field, value) => {
     setServices((prev) =>
@@ -90,6 +109,74 @@ const Services = ({ user }) => {
         service.id === id ? { ...service, [field]: value } : service
       )
     );
+  };
+
+  const handleImageUpload = async (id, file) => {
+    if (!file) return;
+
+    // Check file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file (JPEG, PNG, GIF, etc.)");
+      return;
+    }
+
+    // Check file extension
+    const fileExt = file.name.split(".").pop().toLowerCase();
+    const allowedExt = ["jpg", "jpeg", "png", "gif", "webp", "bmp"];
+    if (!allowedExt.includes(fileExt)) {
+      toast.error("Only JPEG, PNG, GIF, WebP, and BMP images are allowed!");
+      return;
+    }
+
+    // Check file size (max 5MB) - FRONTEND VALIDATION
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size should be less than 5MB");
+      return;
+    }
+
+    // Additional check for very small files (might be corrupt)
+    if (file.size < 100) {
+      toast.error("File appears to be too small or corrupt");
+      return;
+    }
+
+    setUploadingImages((prev) => ({ ...prev, [id]: true }));
+
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/api/about/upload", {
+        method: "POST",
+        headers: {
+          "x-auth-token": token,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || `Upload failed with status: ${response.status}`
+        );
+      }
+
+      if (!data.success) {
+        throw new Error(data.message || "Upload failed");
+      }
+
+      // Update service with FULL image URL
+      const fullImageUrl = `http://localhost:5000${data.imageUrl}`;
+      handleServiceChange(id, "image", fullImageUrl);
+      toast.success("Image uploaded successfully!");
+    } catch (error) {
+      console.error("Image upload error:", error);
+      toast.error(error.message || "Failed to upload image");
+    } finally {
+      setUploadingImages((prev) => ({ ...prev, [id]: false }));
+    }
   };
 
   const addNewService = () => {
@@ -100,21 +187,23 @@ const Services = ({ user }) => {
       {
         id: newId,
         title: "",
-        icon: "FiCode",
+        image: "",
         desc: "",
       },
     ]);
   };
 
   const removeService = (id) => {
-    if (services.length <= 1) {
-      toast.error("At least one service is required");
-      return;
-    }
     setServices((prev) => prev.filter((service) => service.id !== id));
   };
 
   const handleSave = async () => {
+    const isAuthenticated = await checkAuth();
+    if (!isAuthenticated) {
+      toast.error("Please log in to save changes");
+      return;
+    }
+
     setIsSaving(true);
 
     try {
@@ -128,11 +217,19 @@ const Services = ({ user }) => {
         body: JSON.stringify(services),
       });
 
-      if (response.ok) {
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        toast.error("Session expired. Please log in again.");
+        return;
+      }
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
         toast.success("Services saved successfully!");
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to save services");
+        throw new Error(data.message || "Failed to save services");
       }
     } catch (err) {
       toast.error(err.message);
@@ -161,14 +258,12 @@ const Services = ({ user }) => {
 
   return (
     <div className="w-full py-6 px-4 relative overflow-visible">
-      <div
-        className="absolute inset-0 z-0"
-        style={{
-          backgroundImage: `radial-gradient(circle 500px at 50% 100px, rgba(192,92,246,0.4), transparent)`,
-        }}
-      />
-
       <div className="mx-auto max-w-7xl relative z-10">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">
+            Services
+          </h1>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="bg-gray-900/20 backdrop-blur-md rounded-2xl shadow-xl p-6 lg:col-span-2 border border-gray-700/30">
             <div className="flex justify-between items-center mb-6">
@@ -178,10 +273,13 @@ const Services = ({ user }) => {
               </h2>
               <button
                 onClick={addNewService}
-                className="px-4 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition flex items-center gap-2"
+                className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 flex items-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
               >
-                <FiPlus className="w-4 h-4" />
-                Add Service
+                <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                <span className="relative flex items-center gap-2">
+                  <FiPlus className="w-4 h-4" />
+                  Add Service
+                </span>
               </button>
             </div>
 
@@ -204,7 +302,7 @@ const Services = ({ user }) => {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div className="space-y-4 mb-4">
                     <div className="form-group">
                       <label className="block text-sm font-medium text-gray-300 mb-2">
                         Service Title
@@ -226,21 +324,84 @@ const Services = ({ user }) => {
 
                     <div className="form-group">
                       <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Icon Name
+                        Service Image
                       </label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-3 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl text-white focus:border-gray-500 transition"
-                        value={service.icon}
-                        onChange={(e) =>
-                          handleServiceChange(
-                            service.id,
-                            "icon",
-                            e.target.value
-                          )
-                        }
-                        placeholder="FiCode"
-                      />
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 relative group">
+                          {" "}
+                          {/* Added group class here */}
+                          <input
+                            type="text"
+                            className="w-full px-4 py-3 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl text-white focus:border-gray-500 transition pr-10 group-hover:pr-10" // Added group-hover:pr-10
+                            value={service.image}
+                            onChange={(e) =>
+                              handleServiceChange(
+                                service.id,
+                                "image",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Image URL or upload using button →"
+                          />
+                          {/* Cross button to clear image URL */}
+                          {service.image && (
+                            <button
+                              type="button"
+                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-red-400 transition-opacity opacity-0 group-hover:opacity-100 focus:opacity-100" // Changed to group-hover:opacity-100
+                              onClick={() =>
+                                handleServiceChange(service.id, "image", "")
+                              }
+                              title="Remove image URL"
+                            >
+                              <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M6 18L18 6M6 6l12 12"
+                                />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                        <div className="relative">
+                          <input
+                            type="file"
+                            id={`image-upload-${service.id}`}
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files[0];
+                              if (file) {
+                                handleImageUpload(service.id, file);
+                              }
+                              e.target.value = "";
+                            }}
+                            disabled={uploadingImages[service.id]}
+                          />
+                          <label
+                            htmlFor={`image-upload-${service.id}`}
+                            className={`px-4 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-medium 
+              hover:from-cyan-700 hover:to-teal-700 transition flex items-center gap-2 cursor-pointer ${
+                uploadingImages[service.id]
+                  ? "opacity-50 cursor-not-allowed"
+                  : ""
+              }`}
+                            title="Upload Image"
+                          >
+                            {uploadingImages[service.id] ? (
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              <FiUpload className="w-4 h-4" />
+                            )}
+                          </label>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -279,9 +440,9 @@ const Services = ({ user }) => {
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group relative overflow-hidden"
+                className="w-full px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
               >
-                <span className="absolute inset-0 bg-white/10 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
+                <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                 <span className="relative flex items-center justify-center gap-2">
                   {isSaving ? (
                     <>
@@ -299,18 +460,35 @@ const Services = ({ user }) => {
             </div>
           </div>
 
+          {/* Updated Live Preview Section */}
           <div className="bg-gray-900/20 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-gray-700/30 sticky top-8 self-start overflow-y-auto">
             <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
               <FiEye className="w-5 h-5" />
               Live Preview
             </h2>
 
-            <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
-                <h2 className="text-2xl font-bold mb-2">Our Services</h2>
-                <p className="text-indigo-100">
-                  Professional services to grow your business
-                </p>
+            <div className="bg-gradient-to-br from-gray-800 via-gray-900 to-gray-950 rounded-2xl shadow-2xl overflow-hidden transform hover:scale-[1.01] transition-all duration-500 border border-gray-600/30 hover:border-cyan-500/30">
+              {/* Sophisticated Header */}
+              <div className="relative bg-gradient-to-r from-slate-800 via-gray-800 to-slate-900 p-6 overflow-hidden border-b border-gray-700/50">
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-purple-500/5"></div>
+                <div className="absolute top-4 right-4 w-20 h-20 bg-cyan-500/10 rounded-full blur-xl"></div>
+                <div className="absolute bottom-4 left-4 w-16 h-16 bg-purple-500/10 rounded-full blur-lg"></div>
+
+                <div className="relative z-10">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg border border-cyan-400/30">
+                      <FiEye className="w-7 h-7 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-white mb-1">
+                        Our Services
+                      </h2>
+                      <p className="text-cyan-200 text-sm opacity-80">
+                        Professional services to grow your business
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="p-6">
@@ -319,38 +497,79 @@ const Services = ({ user }) => {
                     {services.map((service) => (
                       <div
                         key={service.id}
-                        className="p-6 bg-gray-50 rounded-xl border border-gray-200 hover:border-gray-300 transition-all duration-300 hover:shadow-lg group"
+                        className="group relative p-6 bg-gradient-to-r from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700/50 hover:border-cyan-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/5"
                       >
-                        <div className="flex items-start gap-4">
-                          <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-200 transition-colors">
-                            <div className="w-6 h-6 bg-indigo-600 rounded flex items-center justify-center text-white text-xs font-bold">
-                              {service.icon || "Icon"}
-                            </div>
+                        {/* Image at top */}
+                        <div className="flex justify-center mb-4">
+                          <div className="w-20 h-20 bg-gradient-to-br from-cyan-600 to-teal-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 overflow-hidden shadow-lg">
+                            {service.image ? (
+                              <img
+                                src={
+                                  service.image.startsWith("/uploads")
+                                    ? `http://localhost:5000${service.image}`
+                                    : service.image
+                                }
+                                alt={service.title || "Service"}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  console.error(
+                                    "Image failed to load:",
+                                    service.image
+                                  );
+                                  e.target.style.display = "none";
+                                  // Show fallback if image fails to load
+                                  const fallback = e.target.nextSibling;
+                                  if (fallback && fallback.style) {
+                                    fallback.style.display = "flex";
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-cyan-600 to-teal-600 rounded flex items-center justify-center text-white text-xs font-bold">
+                                Icon
+                              </div>
+                            )}
                           </div>
-                          <div className="flex-1">
-                            <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                              {service.title || "Service Title"}
-                            </h3>
-                            <p className="text-gray-600 text-sm leading-relaxed">
-                              {service.desc ||
-                                "Service description will appear here..."}
-                            </p>
-                          </div>
+                        </div>
+
+                        {/* Title below image */}
+                        <div className="text-center mb-3">
+                          <h3 className="text-lg font-semibold text-white">
+                            {service.title || "Service Title"}
+                          </h3>
+                        </div>
+
+                        {/* Description below title */}
+                        <div className="text-center">
+                          <p className="text-gray-300 text-sm leading-relaxed">
+                            {service.desc ||
+                              "Service description will appear here..."}
+                          </p>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <FiEye className="w-8 h-8 text-gray-400" />
-                    </div>
-                    <p className="text-gray-500">No services to display</p>
-                    <p className="text-sm text-gray-400 mt-1">
+                  <div className="text-center py-8 px-4 border-2 border-dashed border-gray-600/50 rounded-xl bg-gray-800/30">
+                    <FiEye className="w-8 h-8 text-gray-500 mx-auto mb-3" />
+                    <p className="text-gray-400 italic">
+                      No services to display
+                    </p>
+                    <p className="text-gray-500 text-sm mt-1">
                       Add services to see them here
                     </p>
                   </div>
                 )}
+
+                {/* Enhanced Contact Button */}
+                <div className="pt-6 mt-6">
+                  <button className="w-full group relative bg-gradient-to-r from-cyan-600 to-teal-600 text-white px-6 py-4 rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30">
+                    <span className="relative z-10 flex items-center justify-center gap-3">
+                      Get Started
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

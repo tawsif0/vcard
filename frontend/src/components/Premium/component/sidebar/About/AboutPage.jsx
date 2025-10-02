@@ -1,7 +1,579 @@
-import React from "react";
+import React, { useState, useEffect, useContext } from "react";
+import {
+  FiUser,
+  FiMail,
+  FiPhone,
+  FiMapPin,
+  FiBook,
+  FiMessageSquare,
+  FiFlag,
+  FiAward,
+  FiStar,
+  FiCheck,
+  FiX,
+} from "react-icons/fi";
+import AuthContext from "../../../../../context/AuthContext";
 
 const AboutPage = () => {
-  return <div>AboutPage</div>;
+  const { checkAuth } = useContext(AuthContext);
+  const [aboutData, setAboutData] = useState({
+    personal: {},
+    services: [],
+    pricing: [],
+    testimonials: [],
+    brands: [],
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch all about data from backend
+  useEffect(() => {
+    const fetchAboutData = async () => {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const response = await fetch("http://localhost:5000/api/about", {
+          headers: {
+            "x-auth-token": token,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setAboutData({
+              personal: data.data.personal || data.data || {},
+              services: data.data.services || [],
+              pricing: data.data.pricing || [],
+              testimonials: data.data.testimonials || [],
+              brands: data.data.brands || [],
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAboutData();
+  }, []);
+
+  const parseFormattedText = (text) => {
+    if (!text) return null;
+
+    return text.split("\n").map((line, index) => {
+      if (line.trim().startsWith("â€¢")) {
+        return (
+          <div key={index} className="flex items-start">
+            <span className="mr-2">â€¢</span>
+            <span>{line.replace("â€¢", "").trim()}</span>
+          </div>
+        );
+      }
+
+      let formattedLine = line;
+      formattedLine = formattedLine.replace(
+        /\*\*(.*?)\*\*/g,
+        "<strong>$1</strong>"
+      );
+      formattedLine = formattedLine.replace(/\*(.*?)\*/g, "<em>$1</em>");
+      formattedLine = formattedLine.replace(
+        /\[(.*?)\]\((.*?)\)/g,
+        '<a href="$2" class="text-blue-600 underline">$1</a>'
+      );
+
+      return (
+        <p
+          key={index}
+          className="text-gray-700 leading-relaxed text-sm mb-3"
+          dangerouslySetInnerHTML={{ __html: formattedLine }}
+        />
+      );
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
+        <div className="flex flex-col items-center">
+          <div className="w-16 h-16 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-4 text-gray-300 font-medium">
+            Loading about page...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      {/* Hero Section */}
+      <section className="py-20 bg-gradient-to-r from-cyan-600 to-teal-600 text-white">
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="text-5xl font-bold mb-4">
+            {aboutData.personal.name || "Your Name"}
+          </h1>
+          <p className="text-xl text-cyan-100 max-w-2xl mx-auto">
+            {aboutData.personal.description
+              ? aboutData.personal.description
+                  .split("\n")[0]
+                  .substring(0, 100) + "..."
+              : "Professional Portfolio"}
+          </p>
+        </div>
+      </section>
+
+      {/* About Me Section - ROW WISE Personal Information */}
+      <section id="about" className="py-16 bg-gray-900/50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto">
+            <h2 className="text-3xl font-bold text-center text-white mb-12">
+              About Me
+            </h2>
+
+            {/* Personal Information Card - ROW WISE LAYOUT */}
+            <div className="bg-gray-800/50 backdrop-blur-md rounded-2xl shadow-xl p-8 border border-gray-700/30 mx-auto">
+              <h3 className="text-2xl font-bold text-white mb-6 text-center flex items-center justify-center gap-3">
+                <FiUser className="w-6 h-6 text-cyan-400" />
+                Personal Information
+              </h3>
+              <div className="flex flex-col gap-4">
+                {aboutData.personal.name && (
+                  <div className="w-full group flex items-center gap-4 p-4 bg-gray-700/30 rounded-xl border border-gray-600/30 hover:border-cyan-500/30 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-cyan-500/20">
+                    <div className="bg-gradient-to-br from-cyan-600 to-teal-600 p-3 rounded-xl">
+                      <FiUser className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-cyan-300 font-medium mb-1">
+                        Full Name
+                      </p>
+                      <p className="text-white font-semibold">
+                        {aboutData.personal.name}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {aboutData.personal.email && (
+                  <div className="w-full group flex items-center gap-4 p-4 bg-gray-700/30 rounded-xl border border-gray-600/30 hover:border-purple-500/30 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-purple-500/20">
+                    <div className="bg-gradient-to-br from-purple-600 to-indigo-600 p-3 rounded-xl">
+                      <FiMail className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-purple-300 font-medium mb-1">
+                        Email
+                      </p>
+                      <p className="text-white break-all">
+                        {aboutData.personal.email}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {aboutData.personal.phone && (
+                  <div className="w-full group flex items-center gap-4 p-4 bg-gray-700/30 rounded-xl border border-gray-600/30 hover:border-emerald-500/30 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-emerald-500/20">
+                    <div className="bg-gradient-to-br from-emerald-600 to-green-600 p-3 rounded-xl">
+                      <FiPhone className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-emerald-300 font-medium mb-1">
+                        Phone
+                      </p>
+                      <p className="text-white font-semibold">
+                        {aboutData.personal.phone}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {aboutData.personal.address && (
+                  <div className="w-full group flex items-center gap-4 p-4 bg-gray-700/30 rounded-xl border border-gray-600/30 hover:border-orange-500/30 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-orange-500/20">
+                    <div className="bg-gradient-to-br from-orange-600 to-red-600 p-3 rounded-xl">
+                      <FiMapPin className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-orange-300 font-medium mb-1">
+                        Location
+                      </p>
+                      <p className="text-white">{aboutData.personal.address}</p>
+                    </div>
+                  </div>
+                )}
+
+                {aboutData.personal.education && (
+                  <div className="w-full group flex items-center gap-4 p-4 bg-gray-700/30 rounded-xl border border-gray-600/30 hover:border-pink-500/30 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-pink-500/20">
+                    <div className="bg-gradient-to-br from-pink-600 to-rose-600 p-3 rounded-xl">
+                      <FiBook className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-pink-300 font-medium mb-1">
+                        Education
+                      </p>
+                      <p className="text-white">
+                        {aboutData.personal.education}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {aboutData.personal.languages && (
+                  <div className="w-full group flex items-center gap-4 p-4 bg-gray-700/30 rounded-xl border border-gray-600/30 hover:border-teal-500/30 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-teal-500/20">
+                    <div className="bg-gradient-to-br from-teal-600 to-cyan-600 p-3 rounded-xl">
+                      <FiMessageSquare className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-teal-300 font-medium mb-1">
+                        Languages
+                      </p>
+                      <p className="text-white">
+                        {aboutData.personal.languages}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {aboutData.personal.nationality && (
+                  <div className="w-full group flex items-center gap-4 p-4 bg-gray-700/30 rounded-xl border border-gray-600/30 hover:border-amber-500/30 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-amber-500/20">
+                    <div className="bg-gradient-to-br from-amber-600 to-yellow-600 p-3 rounded-xl">
+                      <FiFlag className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-amber-300 font-medium mb-1">
+                        Nationality
+                      </p>
+                      <p className="text-white">
+                        {aboutData.personal.nationality}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {aboutData.personal.freelance && (
+                  <div className="w-full group flex items-center gap-4 p-4 bg-gray-700/30 rounded-xl border border-gray-600/30 hover:border-green-500/30 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-green-500/20">
+                    <div
+                      className={`p-3 rounded-xl ${
+                        aboutData.personal.freelance === "Available"
+                          ? "bg-gradient-to-br from-green-600 to-emerald-600"
+                          : "bg-gradient-to-br from-red-600 to-rose-600"
+                      }`}
+                    >
+                      <FiAward className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-300 font-medium mb-1">
+                        Availability
+                      </p>
+                      <p
+                        className={`font-semibold ${
+                          aboutData.personal.freelance === "Available"
+                            ? "text-emerald-400"
+                            : "text-rose-400"
+                        }`}
+                      >
+                        {aboutData.personal.freelance}
+                        {aboutData.personal.freelance === "Available" && (
+                          <span className="ml-3 text-xs bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-full border border-emerald-500/30">
+                            Open for projects
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Services Section - Cards start from CENTER */}
+      {aboutData.services.length > 0 && (
+        <section id="services" className="py-16 bg-gray-800/30">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-white mb-4">
+                Our Services
+              </h2>
+              <p className="text-gray-300 max-w-2xl mx-auto">
+                Professional services to grow your business
+              </p>
+            </div>
+
+            <div className="flex justify-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl">
+                {aboutData.services.map((service) => (
+                  <div
+                    key={service.id}
+                    className="w-full bg-gray-800/50 backdrop-blur-md rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 border border-gray-700/30 hover:border-cyan-500/30 group hover:-translate-y-3 hover:shadow-cyan-500/20"
+                  >
+                    <div className="flex justify-center mb-4">
+                      <div className="w-16 h-16 bg-gradient-to-br from-cyan-600 to-teal-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 overflow-hidden shadow-lg">
+                        {service.image ? (
+                          <img
+                            src={
+                              service.image.startsWith("/uploads")
+                                ? `http://localhost:5000${service.image}`
+                                : service.image
+                            }
+                            alt={service.title || "Service"}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = "none";
+                              const fallback = e.target.nextSibling;
+                              if (fallback && fallback.style) {
+                                fallback.style.display = "flex";
+                              }
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-cyan-600 to-teal-600 rounded flex items-center justify-center text-white text-sm font-bold">
+                            Icon
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <h3 className="text-xl font-semibold text-white mb-3 text-center">
+                      {service.title || "Service Title"}
+                    </h3>
+                    <p className="text-gray-300 leading-relaxed text-center">
+                      {service.desc ||
+                        "Service description will appear here..."}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Pricing Section - Cards start from CENTER */}
+      {aboutData.pricing.length > 0 && (
+        <section id="pricing" className="py-16 bg-gray-900/50">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-white mb-4">
+                Pricing Plans
+              </h2>
+              <p className="text-gray-300 max-w-2xl mx-auto">
+                Choose the perfect plan for your needs
+              </p>
+            </div>
+
+            <div className="flex justify-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl">
+                {aboutData.pricing.map((plan) => (
+                  <div
+                    key={plan.id}
+                    className="w-full bg-gray-800/50 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden border border-gray-700/30 hover:shadow-2xl transition-all duration-300 group hover:-translate-y-3 hover:shadow-cyan-500/20"
+                  >
+                    <div className="bg-gradient-to-r from-cyan-600 to-teal-600 p-6 text-white text-center">
+                      <h3 className="text-xl font-bold mb-2">
+                        {plan.name || "Plan Name"}
+                      </h3>
+                      <div className="flex items-baseline justify-center gap-1">
+                        <span className="text-3xl font-bold">
+                          {plan.price || "$0"}
+                        </span>
+                        <span className="text-cyan-100 text-sm">
+                          /
+                          {plan.period === "month"
+                            ? "mo"
+                            : plan.period === "year"
+                            ? "yr"
+                            : plan.period === "hour"
+                            ? "hr"
+                            : "one-time"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-6">
+                      <ul className="space-y-3 mb-6">
+                        {plan.features.map((feature) => (
+                          <li
+                            key={feature.id}
+                            className={`flex items-center gap-3 ${
+                              feature.included
+                                ? "text-gray-300"
+                                : "text-gray-500 line-through"
+                            }`}
+                          >
+                            {feature.included ? (
+                              <FiCheck className="w-4 h-4 text-green-500 flex-shrink-0" />
+                            ) : (
+                              <FiX className="w-4 h-4 text-red-500 flex-shrink-0" />
+                            )}
+                            <span className="text-sm">
+                              {feature.text || "Feature description"}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <button className="w-full group relative bg-gradient-to-r from-cyan-600 to-teal-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30">
+                        <span className="relative z-10">Get Started</span>
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Testimonials Section - Cards start from CENTER */}
+      {aboutData.testimonials.length > 0 && (
+        <section id="testimonials" className="py-16 bg-gray-800/30">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-white mb-4">
+                Client Testimonials
+              </h2>
+              <p className="text-gray-300 max-w-2xl mx-auto">
+                What our clients say about us
+              </p>
+            </div>
+
+            <div className="flex justify-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl">
+                {aboutData.testimonials.map((testimonial) => (
+                  <div
+                    key={testimonial.id}
+                    className="w-full bg-gray-800/50 backdrop-blur-md rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 border border-gray-700/30 hover:border-cyan-500/30 group hover:-translate-y-3 hover:shadow-cyan-500/20"
+                  >
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className="flex-shrink-0">
+                        <div className="w-12 h-12 bg-gradient-to-br from-cyan-600 to-teal-600 rounded-full flex items-center justify-center overflow-hidden shadow-lg">
+                          {testimonial.avatar ? (
+                            <img
+                              src={
+                                testimonial.avatar.startsWith("/uploads")
+                                  ? `http://localhost:5000${testimonial.avatar}`
+                                  : testimonial.avatar
+                              }
+                              alt={testimonial.name}
+                              className="w-12 h-12 rounded-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = "none";
+                                const fallback = e.target.nextSibling;
+                                if (fallback && fallback.style) {
+                                  fallback.style.display = "flex";
+                                }
+                              }}
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-gradient-to-br from-cyan-600 to-teal-600 rounded-full flex items-center justify-center text-white font-semibold">
+                              {testimonial.name
+                                ? testimonial.name.charAt(0).toUpperCase()
+                                : "?"}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-white">
+                          {testimonial.name || "Client Name"}
+                        </h3>
+                        <p className="text-cyan-200 text-sm">
+                          {testimonial.position || "Position"}
+                          {testimonial.company && " at "}
+                          {testimonial.company}
+                        </p>
+                      </div>
+                    </div>
+
+                    <p className="text-gray-300 text-sm leading-relaxed italic">
+                      "
+                      {testimonial.text ||
+                        "Testimonial text will appear here..."}
+                      "
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Brands & Clients Section - Cards start from CENTER */}
+      {aboutData.brands.length > 0 && (
+        <section id="brands" className="py-16 bg-gray-900/50">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-white mb-4">
+                Brands & Clients
+              </h2>
+              <p className="text-gray-300 max-w-2xl mx-auto">
+                Trusted by amazing companies
+              </p>
+            </div>
+
+            <div className="flex justify-center">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 max-w-6xl">
+                {aboutData.brands.map((brand) => (
+                  <div
+                    key={brand.id}
+                    className="group relative bg-gradient-to-r from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700/50 hover:border-cyan-500/30 transition-all duration-300 hover:shadow-lg overflow-hidden aspect-square"
+                  >
+                    {brand.src ? (
+                      <img
+                        src={
+                          brand.src.startsWith("/uploads")
+                            ? `http://localhost:5000${brand.src}`
+                            : brand.src
+                        }
+                        alt={brand.alt}
+                        className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                          const fallback = e.target.nextSibling;
+                          if (fallback && fallback.style) {
+                            fallback.style.display = "flex";
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 p-4">
+                        <div className="w-16 h-16 bg-gradient-to-br from-cyan-600 to-teal-600 rounded-xl flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                          <span className="text-xs font-medium text-white">
+                            Logo
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-300 text-center">
+                          {brand.alt || "Brand Name"}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Footer */}
+      <footer className="bg-gray-800 text-white py-8 border-t border-gray-700/30">
+        <div className="container mx-auto px-4 text-center">
+          <p>
+            &copy; 2024 {aboutData.personal.name || "Your Name"}. All rights
+            reserved.
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
 };
 
 export default AboutPage;
