@@ -84,7 +84,13 @@ const Sidebar = ({
     {
       name: "Blog",
       icon: <FiBook />,
-      children: [{ name: "Blog", component: "blog" }],
+      children: [
+        { name: "Blog Category", component: "blogCategory" },
+        { name: "Modify Blog Category", component: "modifyBlogCategory" },
+        { name: "Blog Create", component: "blogCreate" },
+        { name: "Modify Blog", component: "modifyBlog" },
+        { name: "Blog Page", component: "blogPage" },
+      ],
     },
     {
       name: "Contact",

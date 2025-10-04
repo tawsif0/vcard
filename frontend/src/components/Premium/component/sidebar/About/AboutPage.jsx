@@ -115,19 +115,87 @@ const AboutPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       {/* Hero Section */}
-      <section className="py-20 bg-gradient-to-r from-cyan-600 to-teal-600 text-white">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-5xl font-bold mb-4">
+      <section
+        className="relative py-16 text-white overflow-hidden"
+        style={{
+          background: `radial-gradient(circle at center, #0f4c5c, #042a38 80%)`,
+        }}
+      >
+        {/* Noise Texture Overlay */}
+        <div className="absolute inset-0 pointer-events-none opacity-10 bg-noise-pattern"></div>
+
+        {/* Background Decorative Glow */}
+        <div className="absolute inset-0 opacity-50 pointer-events-none">
+          <div className="w-96 h-96 bg-cyan-500 rounded-full blur-3xl absolute -top-24 -left-24 animate-pulse-slow"></div>
+          <div className="w-96 h-96 bg-teal-600 rounded-full blur-3xl absolute bottom-16 right-16 animate-pulse-slow delay-500"></div>
+        </div>
+
+        {/* Content */}
+        <div className="container mx-auto px-6 text-center relative z-10 flex flex-col justify-center min-h-[260px] py-4">
+          {/* Animated Gradient Name */}
+          <h1 className="text-7xl sm:text-8xl font-extrabold mb-4 bg-gradient-to-r from-white via-cyan-300 to-teal-300 bg-clip-text text-transparent animate-text-shine leading-snug">
             {aboutData.personal.name || "Your Name"}
           </h1>
-          <p className="text-xl text-cyan-100 max-w-2xl mx-auto">
+
+          {/* Divider */}
+          <div className="w-24 h-1 mx-auto mb-6 rounded-full bg-gradient-to-r from-cyan-400 to-teal-400 shadow-lg"></div>
+
+          {/* Description */}
+          <p className="text-lg sm:text-xl text-cyan-100 max-w-3xl mx-auto leading-relaxed opacity-90 animate-fade-in">
             {aboutData.personal.description
               ? aboutData.personal.description
                   .split("\n")[0]
-                  .substring(0, 100) + "..."
+                  .substring(0, 140) + "..."
               : "Professional Portfolio"}
           </p>
         </div>
+
+        <style jsx>{`
+          @keyframes text-shine {
+            0%,
+            100% {
+              background-position: 200% center;
+            }
+            50% {
+              background-position: -200% center;
+            }
+          }
+          .animate-text-shine {
+            background-size: 200% auto;
+            animation: text-shine 4s linear infinite;
+          }
+          @keyframes pulse-slow {
+            0%,
+            100% {
+              opacity: 0.4;
+            }
+            50% {
+              opacity: 0.8;
+            }
+          }
+          .animate-pulse-slow {
+            animation: pulse-slow 8s ease-in-out infinite;
+          }
+          @keyframes fade-in {
+            from {
+              opacity: 0;
+              transform: translateY(10px);
+            }
+            to {
+              opacity: 0.9;
+              transform: translateY(0);
+            }
+          }
+          .animate-fade-in {
+            animation: fade-in 2s ease forwards;
+          }
+          /* Noise pattern for subtle texture */
+          .bg-noise-pattern {
+            background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSJ3aGl0ZSIgLz48Y2lyY2xlIGN4PSIyIiBjeT0iMiIgcj0iMSIgZmlsbD0iI2IwYjBiMCIgLz48Y2lyY2xlIGN4PSIxNiIgY3k9IjMyIiByPSIyIiBmaWxsPSIjYzRjNGM0IiAvPjwvc3ZnPg==");
+            opacity: 0.15;
+            pointer-events: none;
+          }
+        `}</style>
       </section>
 
       {/* About Me Section - ROW WISE Personal Information */}

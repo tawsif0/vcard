@@ -605,18 +605,6 @@ const PricingPlan = () => {
                     </p>
                   </div>
                 )}
-
-                {/* Enhanced Contact Button - Only show if there are pricing plans */}
-                {pricingPlans.length > 0 && (
-                  <div className="pt-6 mt-6">
-                    <button className="w-full group relative bg-gradient-to-r from-cyan-600 to-teal-600 text-white px-6 py-4 rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30">
-                      <span className="relative z-10 flex items-center justify-center gap-3">
-                        Contact Sales
-                      </span>
-                      <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
           </div>

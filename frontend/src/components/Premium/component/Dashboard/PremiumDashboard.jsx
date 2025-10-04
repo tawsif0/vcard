@@ -18,7 +18,6 @@ import MySkills from "../sidebar/Resume/MySkills";
 import WorkExperience from "../sidebar/Resume/WorkExperience";
 
 import Contact from "../sidebar/Contact/Contact";
-import Blog from "../sidebar/Blog/Blog";
 import Portfolio from "../sidebar/Portfolio/Portfolio";
 import DashboardHome from "../sidebar/Home/DashboardHome";
 import HomeCard from "../sidebar/Home/HomeCard";
@@ -26,6 +25,13 @@ import AboutPage from "../sidebar/About/AboutPage";
 import ResumePage from "../sidebar/Resume/ResumePage";
 import ContactedUser from "../sidebar/Contact/ContactedUser";
 import PremiumSettings from "../sidebar/PremiumSettings";
+//Blog Components
+import BlogCategory from "../sidebar/Blog/BlogCategory";
+import ModifyBlogCategory from "../sidebar/Blog/ModifyBlogCategory";
+import BlogCreate from "../sidebar/Blog/BlogCreate";
+import ModifyBlog from "../sidebar/Blog/ModifyBlog";
+import Blog from "../sidebar/Blog/BlogPage";
+import BlogPage from "../sidebar/Blog/BlogPage";
 
 const PremiumDashboard = () => {
   const [activeView, setActiveView] = useState(() => {
@@ -105,8 +111,16 @@ const PremiumDashboard = () => {
       case "portfolio":
         return <Portfolio />;
       // Blog Section
-      case "blog":
-        return <Blog />;
+      case "blogCategory":
+        return <BlogCategory />;
+      case "modifyBlogCategory":
+        return <ModifyBlogCategory />;
+      case "blogCreate":
+        return <BlogCreate />;
+      case "modifyBlog":
+        return <ModifyBlog />;
+      case "blogPage":
+        return <BlogPage />;
       // Contact Section
       case "contact":
         return <Contact />;

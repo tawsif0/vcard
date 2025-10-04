@@ -427,7 +427,7 @@ const Services = () => {
                   <p className="text-gray-400 mb-4">No services added yet</p>
                   <button
                     onClick={addNewService}
-                    className="px-6 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition flex items-center gap-2 mx-auto"
+                    className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 flex items-center gap-2 mx-auto group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
                   >
                     <FiPlus className="w-4 h-4" />
                     Add Your First Service
@@ -560,16 +560,6 @@ const Services = () => {
                     </p>
                   </div>
                 )}
-
-                {/* Enhanced Contact Button */}
-                <div className="pt-6 mt-6">
-                  <button className="w-full group relative bg-gradient-to-r from-cyan-600 to-teal-600 text-white px-6 py-4 rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30">
-                    <span className="relative z-10 flex items-center justify-center gap-3">
-                      Get Started
-                    </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  </button>
-                </div>
               </div>
             </div>
           </div>
