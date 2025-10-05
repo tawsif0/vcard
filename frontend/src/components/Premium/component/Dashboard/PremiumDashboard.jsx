@@ -18,7 +18,12 @@ import MySkills from "../sidebar/Resume/MySkills";
 import WorkExperience from "../sidebar/Resume/WorkExperience";
 
 import Contact from "../sidebar/Contact/Contact";
+//Portfolio Components
 import Portfolio from "../sidebar/Portfolio/Portfolio";
+
+import PortfolioCategory from "../sidebar/Portfolio/PortfolioCategory";
+import CreatePortfolio from "../sidebar/Portfolio/CreatePortfolio";
+
 import DashboardHome from "../sidebar/Home/DashboardHome";
 import HomeCard from "../sidebar/Home/HomeCard";
 import AboutPage from "../sidebar/About/AboutPage";
@@ -108,8 +113,12 @@ const PremiumDashboard = () => {
       case "resumePage":
         return <ResumePage />;
       // Portfolio Section
-      case "portfolio":
-        return <Portfolio />;
+       case "portfolio":
+        return <Portfolio />; 
+      case "portfolioCategory":
+        return <PortfolioCategory />;  
+      case "createPortfolio":
+        return <CreatePortfolio />;  
       // Blog Section
       case "blogCategory":
         return <BlogCategory />;

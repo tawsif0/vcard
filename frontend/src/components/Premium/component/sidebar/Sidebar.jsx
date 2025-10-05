@@ -76,10 +76,17 @@ const Sidebar = ({
         { name: "Resume Page", component: "resumePage" },
       ],
     },
-    {
+     {
       name: "Portfolio",
       icon: <FiBriefcase />,
-      children: [{ name: "Portfolio", component: "portfolio" }],
+      children: [
+        { name: "Portfolio", component: "portfolio" },
+        { name: "PortFolio Category", component: "portfolioCategory" },
+        { name: "Create Portfolio", component: "createPortfolio" },
+       
+     
+      
+      ],
     },
     {
       name: "Blog",
