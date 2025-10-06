@@ -11,6 +11,7 @@ import {
   FiStar,
   FiCheck,
   FiX,
+  FiGlobe,
 } from "react-icons/fi";
 import AuthContext from "../../../../../context/AuthContext";
 
@@ -65,40 +66,6 @@ const AboutPage = () => {
     fetchAboutData();
   }, []);
 
-  const parseFormattedText = (text) => {
-    if (!text) return null;
-
-    return text.split("\n").map((line, index) => {
-      if (line.trim().startsWith("â€¢")) {
-        return (
-          <div key={index} className="flex items-start">
-            <span className="mr-2">â€¢</span>
-            <span>{line.replace("â€¢", "").trim()}</span>
-          </div>
-        );
-      }
-
-      let formattedLine = line;
-      formattedLine = formattedLine.replace(
-        /\*\*(.*?)\*\*/g,
-        "<strong>$1</strong>"
-      );
-      formattedLine = formattedLine.replace(/\*(.*?)\*/g, "<em>$1</em>");
-      formattedLine = formattedLine.replace(
-        /\[(.*?)\]\((.*?)\)/g,
-        '<a href="$2" class="text-blue-600 underline">$1</a>'
-      );
-
-      return (
-        <p
-          key={index}
-          className="text-gray-700 leading-relaxed text-sm mb-3"
-          dangerouslySetInnerHTML={{ __html: formattedLine }}
-        />
-      );
-    });
-  };
-
   if (isLoading) {
     return (
       <div className="w-full h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
@@ -125,29 +92,15 @@ const AboutPage = () => {
         <div className="absolute inset-0 pointer-events-none opacity-10 bg-noise-pattern"></div>
 
         {/* Background Decorative Glow */}
-        <div className="absolute inset-0 opacity-50 pointer-events-none">
+        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+          {/* Background animated blobs */}
           <div className="w-96 h-96 bg-cyan-500 rounded-full blur-3xl absolute -top-24 -left-24 animate-pulse-slow"></div>
           <div className="w-96 h-96 bg-teal-600 rounded-full blur-3xl absolute bottom-16 right-16 animate-pulse-slow delay-500"></div>
-        </div>
 
-        {/* Content */}
-        <div className="container mx-auto px-6 text-center relative z-10 flex flex-col justify-center min-h-[260px] py-4">
           {/* Animated Gradient Name */}
-          <h1 className="text-7xl sm:text-8xl font-extrabold mb-4 bg-gradient-to-r from-white via-cyan-300 to-teal-300 bg-clip-text text-transparent animate-text-shine leading-snug">
+          <h1 className="text-7xl sm:text-8xl font-extrabold mb-4 bg-gradient-to-r from-white via-cyan-300 to-teal-300 bg-clip-text text-transparent animate-text-shine leading-snug relative z-10">
             {aboutData.personal.name || "Your Name"}
           </h1>
-
-          {/* Divider */}
-          <div className="w-24 h-1 mx-auto mb-6 rounded-full bg-gradient-to-r from-cyan-400 to-teal-400 shadow-lg"></div>
-
-          {/* Description */}
-          <p className="text-lg sm:text-xl text-cyan-100 max-w-3xl mx-auto leading-relaxed opacity-90 animate-fade-in">
-            {aboutData.personal.description
-              ? aboutData.personal.description
-                  .split("\n")[0]
-                  .substring(0, 140) + "..."
-              : "Professional Portfolio"}
-          </p>
         </div>
 
         <style jsx>{`
@@ -355,13 +308,35 @@ const AboutPage = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Description Section - Show at the top */}
+                {aboutData.personal.description && (
+                  <div
+                    className="w-full group bg-gray-800/50 backdrop-blur-md rounded-2xl border border-gray-700/30 
+                p-8 mx-auto mb-8 transition-all duration-300 
+                hover:-translate-y-2 hover:shadow-xl hover:shadow-cyan-500/20"
+                  >
+                    <h3 className="text-2xl font-bold text-white mb-6 text-center flex items-center justify-center gap-3">
+                      <FiGlobe className="w-6 h-6 text-cyan-400" />
+                      More About Me
+                    </h3>
+                    <div className="bg-gray-900/30 rounded-xl p-6 border border-gray-600/30">
+                      <div
+                        className="text-gray-300 leading-relaxed text-base space-y-4 preview-content"
+                        dangerouslySetInnerHTML={{
+                          __html: aboutData.personal.description,
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Services Section - Cards start from CENTER */}
+      {/* Services Section - CENTERED CARD ARRANGEMENT */}
       {aboutData.services.length > 0 && (
         <section id="services" className="py-16 bg-gray-800/30">
           <div className="container mx-auto px-4">
@@ -375,11 +350,11 @@ const AboutPage = () => {
             </div>
 
             <div className="flex justify-center">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl">
-                {aboutData.services.map((service) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-7xl mx-auto justify-items-center">
+                {aboutData.services.map((service, index) => (
                   <div
                     key={service.id}
-                    className="w-full bg-gray-800/50 backdrop-blur-md rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 border border-gray-700/30 hover:border-cyan-500/30 group hover:-translate-y-3 hover:shadow-cyan-500/20"
+                    className="w-full max-w-xs bg-gray-800/50 backdrop-blur-md rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 border border-gray-700/30 hover:border-cyan-500/30 group hover:-translate-y-3 hover:shadow-cyan-500/20"
                   >
                     <div className="flex justify-center mb-4">
                       <div className="w-16 h-16 bg-gradient-to-br from-cyan-600 to-teal-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 overflow-hidden shadow-lg">
@@ -410,10 +385,18 @@ const AboutPage = () => {
                     <h3 className="text-xl font-semibold text-white mb-3 text-center">
                       {service.title || "Service Title"}
                     </h3>
-                    <p className="text-gray-300 leading-relaxed text-center">
-                      {service.desc ||
-                        "Service description will appear here..."}
-                    </p>
+                    <div className="text-gray-300 leading-relaxed text-center preview-content">
+                      {service.desc ? (
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: service.desc,
+                          }}
+                          className="preview-html-content text-left"
+                        />
+                      ) : (
+                        "Service description will appear here..."
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -422,7 +405,7 @@ const AboutPage = () => {
         </section>
       )}
 
-      {/* Pricing Section - Cards start from CENTER */}
+      {/* Pricing Section - CENTERED CARD ARRANGEMENT */}
       {aboutData.pricing.length > 0 && (
         <section id="pricing" className="py-16 bg-gray-900/50">
           <div className="container mx-auto px-4">
@@ -436,11 +419,11 @@ const AboutPage = () => {
             </div>
 
             <div className="flex justify-center">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-7xl mx-auto justify-items-center">
                 {aboutData.pricing.map((plan) => (
                   <div
                     key={plan.id}
-                    className="w-full bg-gray-800/50 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden border border-gray-700/30 hover:shadow-2xl transition-all duration-300 group hover:-translate-y-3 hover:shadow-cyan-500/20"
+                    className="w-full max-w-xs bg-gray-800/50 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden border border-gray-700/30 hover:shadow-2xl transition-all duration-300 group hover:-translate-y-3 hover:shadow-cyan-500/20"
                   >
                     <div className="bg-gradient-to-r from-cyan-600 to-teal-600 p-6 text-white text-center">
                       <h3 className="text-xl font-bold mb-2">
@@ -499,7 +482,7 @@ const AboutPage = () => {
         </section>
       )}
 
-      {/* Testimonials Section - Cards start from CENTER */}
+      {/* Testimonials Section - CENTERED CARD ARRANGEMENT */}
       {aboutData.testimonials.length > 0 && (
         <section id="testimonials" className="py-16 bg-gray-800/30">
           <div className="container mx-auto px-4">
@@ -513,11 +496,11 @@ const AboutPage = () => {
             </div>
 
             <div className="flex justify-center">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-7xl mx-auto justify-items-center">
                 {aboutData.testimonials.map((testimonial) => (
                   <div
                     key={testimonial.id}
-                    className="w-full bg-gray-800/50 backdrop-blur-md rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 border border-gray-700/30 hover:border-cyan-500/30 group hover:-translate-y-3 hover:shadow-cyan-500/20"
+                    className="w-full max-w-xs bg-gray-800/50 backdrop-blur-md rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 border border-gray-700/30 hover:border-cyan-500/30 group hover:-translate-y-3 hover:shadow-cyan-500/20"
                   >
                     <div className="flex items-start gap-4 mb-4">
                       <div className="flex-shrink-0">
@@ -560,12 +543,18 @@ const AboutPage = () => {
                       </div>
                     </div>
 
-                    <p className="text-gray-300 text-sm leading-relaxed italic">
-                      "
-                      {testimonial.text ||
-                        "Testimonial text will appear here..."}
-                      "
-                    </p>
+                    <div className="text-gray-300 text-sm leading-relaxed italic preview-content">
+                      {testimonial.text ? (
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: testimonial.text,
+                          }}
+                          className="preview-html-content"
+                        />
+                      ) : (
+                        "Testimonial text will appear here..."
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -574,7 +563,7 @@ const AboutPage = () => {
         </section>
       )}
 
-      {/* Brands & Clients Section - Cards start from CENTER */}
+      {/* Brands & Clients Section - CENTERED CARD ARRANGEMENT */}
       {aboutData.brands.length > 0 && (
         <section id="brands" className="py-16 bg-gray-900/50">
           <div className="container mx-auto px-4">
@@ -588,11 +577,11 @@ const AboutPage = () => {
             </div>
 
             <div className="flex justify-center">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 max-w-6xl">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 w-full max-w-7xl mx-auto justify-items-center">
                 {aboutData.brands.map((brand) => (
                   <div
                     key={brand.id}
-                    className="group relative bg-gradient-to-r from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700/50 hover:border-cyan-500/30 transition-all duration-300 hover:shadow-lg overflow-hidden aspect-square"
+                    className="w-32 h-32 group relative bg-gradient-to-r from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700/50 hover:border-cyan-500/30 transition-all duration-300 hover:shadow-lg overflow-hidden"
                   >
                     {brand.src ? (
                       <img
@@ -613,7 +602,7 @@ const AboutPage = () => {
                       />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 p-4">
-                        <div className="w-16 h-16 bg-gradient-to-br from-cyan-600 to-teal-600 rounded-xl flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                        <div className="w-12 h-12 bg-gradient-to-br from-cyan-600 to-teal-600 rounded-xl flex items-center justify-center mb-2 shadow-lg group-hover:scale-110 transition-transform duration-300">
                           <span className="text-xs font-medium text-white">
                             Logo
                           </span>
@@ -640,6 +629,105 @@ const AboutPage = () => {
           </p>
         </div>
       </footer>
+
+      {/* Add custom styles for the preview content */}
+      <style jsx>{`
+        .preview-content ul,
+        .preview-content ol {
+          margin: 0.5rem 0;
+          padding-left: 1.5rem;
+        }
+        .preview-content li {
+          margin-bottom: 0.25rem;
+          list-style-position: outside;
+        }
+        .preview-content ul li {
+          list-style-type: disc;
+        }
+        .preview-content ol li {
+          list-style-type: decimal;
+        }
+        .preview-content strong {
+          font-weight: bold;
+        }
+        .preview-content em {
+          font-style: italic;
+        }
+        .preview-content u {
+          text-decoration: underline;
+        }
+        .preview-content a {
+          color: #60a5fa;
+          text-decoration: underline;
+        }
+        .preview-content a:hover {
+          color: #93c5fd;
+        }
+
+        /* Additional styles for better HTML content display */
+        .preview-html-content h1,
+        .preview-html-content h2,
+        .preview-html-content h3,
+        .preview-html-content h4,
+        .preview-html-content h5,
+        .preview-html-content h6 {
+          color: white;
+          margin: 1rem 0 0.5rem 0;
+          font-weight: bold;
+        }
+
+        .preview-html-content h1 {
+          font-size: 1.5rem;
+        }
+        .preview-html-content h2 {
+          font-size: 1.3rem;
+        }
+        .preview-html-content h3 {
+          font-size: 1.1rem;
+        }
+
+        .preview-html-content blockquote {
+          border-left: 3px solid #60a5fa;
+          padding-left: 1rem;
+          margin: 1rem 0;
+          font-style: italic;
+          color: #cbd5e1;
+        }
+
+        .preview-html-content code {
+          background: #374151;
+          padding: 0.2rem 0.4rem;
+          border-radius: 0.25rem;
+          font-family: monospace;
+          color: #fbbf24;
+        }
+
+        .preview-html-content pre {
+          background: #1f2937;
+          padding: 1rem;
+          border-radius: 0.5rem;
+          overflow-x: auto;
+          margin: 1rem 0;
+        }
+
+        .preview-html-content table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 1rem 0;
+        }
+
+        .preview-html-content th,
+        .preview-html-content td {
+          border: 1px solid #4b5563;
+          padding: 0.5rem;
+          text-align: left;
+        }
+
+        .preview-html-content th {
+          background: #374151;
+          font-weight: bold;
+        }
+      `}</style>
     </div>
   );
 };

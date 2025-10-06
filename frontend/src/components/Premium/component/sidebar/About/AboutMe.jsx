@@ -12,13 +12,13 @@ import {
   FiEdit,
   FiEye,
   FiSave,
-  FiBold,
-  FiItalic,
-  FiList,
-  FiLink,
+  // TINYMCE_REMOVED: Removed formatting icons since TinyMCE has its own toolbar
 } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import AuthContext from "../../../../../context/AuthContext"; // Adjust import path as needed
+
+// TINYMCE_ADDED: Import TinyMCE Editor
+import { Editor } from "@tinymce/tinymce-react";
 
 // eslint-disable-next-line no-unused-vars
 const AboutMe = ({ user }) => {
@@ -37,7 +37,7 @@ const AboutMe = ({ user }) => {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const textareaRef = useRef(null);
+  // TINYMCE_REMOVED: Removed textareaRef since TinyMCE handles its own ref
   const hasFetchedRef = useRef(false);
 
   // Loading timeout hook
@@ -151,6 +151,14 @@ const AboutMe = ({ user }) => {
     }));
   };
 
+  // TINYMCE_ADDED: New handler for editor content changes
+  const handleEditorChange = (content) => {
+    setAboutData((prev) => ({
+      ...prev,
+      description: content,
+    }));
+  };
+
   const handleSave = async () => {
     // Check authentication before saving
     const isAuthenticated = await checkAuth();
@@ -194,102 +202,8 @@ const AboutMe = ({ user }) => {
     }
   };
 
-  const formatText = (format) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = aboutData.description.substring(start, end);
-
-    let formattedText = "";
-    let newStart = start;
-    let newEnd = end;
-
-    switch (format) {
-      case "bold":
-        formattedText = `**${selectedText}**`;
-        newStart = start + 2;
-        newEnd = end + 2;
-        break;
-      case "italic":
-        formattedText = `*${selectedText}*`;
-        newStart = start + 1;
-        newEnd = end + 1;
-        break;
-      case "bullet":
-        if (selectedText) {
-          formattedText = `• ${selectedText}`;
-          newStart = start + 2;
-          newEnd = end + 2;
-        } else {
-          formattedText = "• ";
-          newStart = start + 2;
-          newEnd = start + 2;
-        }
-        break;
-      case "link":
-        formattedText = `[${selectedText || "link"}](${
-          selectedText ? "url" : "https://example.com"
-        })`;
-        newStart = start + 1;
-        newEnd = selectedText ? end + 1 : start + 5;
-        break;
-      default:
-        formattedText = selectedText;
-    }
-
-    const newDescription =
-      aboutData.description.substring(0, start) +
-      formattedText +
-      aboutData.description.substring(end);
-
-    setAboutData((prev) => ({
-      ...prev,
-      description: newDescription,
-    }));
-
-    setTimeout(() => {
-      if (textarea) {
-        textarea.focus();
-        textarea.setSelectionRange(newStart, newEnd);
-      }
-    }, 0);
-  };
-
-  const parseFormattedText = (text) => {
-    if (!text) return null;
-
-    return text.split("\n").map((line, index) => {
-      if (line.trim().startsWith("•")) {
-        return (
-          <div key={index} className="flex items-start">
-            <span className="mr-2">•</span>
-            <span>{line.replace("•", "").trim()}</span>
-          </div>
-        );
-      }
-
-      let formattedLine = line;
-      formattedLine = formattedLine.replace(
-        /\*\*(.*?)\*\*/g,
-        "<strong>$1</strong>"
-      );
-      formattedLine = formattedLine.replace(/\*(.*?)\*/g, "<em>$1</em>");
-      formattedLine = formattedLine.replace(
-        /\[(.*?)\]\((.*?)\)/g,
-        '<a href="$2" class="text-blue-600 underline">$1</a>'
-      );
-
-      return (
-        <p
-          key={index}
-          className="text-white leading-relaxed text-sm mb-3"
-          dangerouslySetInnerHTML={{ __html: formattedLine }}
-        />
-      );
-    });
-  };
+  // TINYMCE_REMOVED: Removed all formatting functions (formatText, parseFormattedText, getDisplayText, handleTextareaChange)
+  // since TinyMCE handles all formatting internally
 
   if (isLoading) {
     return (
@@ -458,57 +372,77 @@ const AboutMe = ({ user }) => {
                 About Description
               </label>
 
-              <div className="flex gap-2 mb-3 p-3 bg-gray-800 rounded-lg border border-gray-700">
-                <button
-                  type="button"
-                  onClick={() => formatText("bold")}
-                  className="p-2 hover:bg-gray-700 rounded transition"
-                  title="Bold"
-                >
-                  <FiBold className="w-4 h-4 text-gray-300" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => formatText("italic")}
-                  className="p-2 hover:bg-gray-700 rounded transition"
-                  title="Italic"
-                >
-                  <FiItalic className="w-4 h-4 text-gray-300" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => formatText("bullet")}
-                  className="p-2 hover:bg-gray-700 rounded transition"
-                  title="Bullet List"
-                >
-                  <FiList className="w-4 h-4 text-gray-300" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => formatText("link")}
-                  className="p-2 hover:bg-gray-700 rounded transition"
-                  title="Add Link"
-                >
-                  <FiLink className="w-4 h-4 text-gray-300" />
-                </button>
+              {/* TINYMCE_REPLACED: Replaced custom formatting toolbar and textarea with TinyMCE Editor */}
+              <div className="bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl focus-within:border-gray-500 transition">
+                <Editor
+                  apiKey="h2ar80nttlx4hli43ugzp4wvv9ej7q3feifsu8mqssyfga6s" // TINYMCE_ADDED: Your API key
+                  value={aboutData.description}
+                  onEditorChange={handleEditorChange}
+                  init={{
+                    height: 300,
+                    menubar: false,
+                    plugins: [
+                      "advlist",
+                      "autolink",
+                      "lists",
+                      "link",
+                      "image",
+                      "charmap",
+                      "preview",
+                      "anchor",
+                      "searchreplace",
+                      "visualblocks",
+                      "code",
+                      "fullscreen",
+                      "insertdatetime",
+                      "media",
+                      "table",
+                      "code",
+                      "help",
+                      "wordcount",
+                    ],
+                    toolbar:
+                      "undo redo | blocks | bold italic underline strikethrough | " +
+                      "forecolor backcolor | alignleft aligncenter alignright alignjustify | " +
+                      "bullist numlist outdent indent | link image | removeformat | help",
+                    skin: "oxide-dark",
+                    content_css: "dark",
+                    content_style: `
+                      body { 
+                        background: #1f2937; 
+                        color: #f9fafb; 
+                        font-family: Inter, sans-serif; 
+                        font-size: 14px; 
+                        line-height: 1.6; 
+                      }
+                      p { margin: 0 0 12px 0; }
+                      ul, ol { margin: 0 0 12px 0; padding-left: 20px; }
+                      li { margin-bottom: 4px; }
+                      strong { font-weight: bold; }
+                      em { font-style: italic; }
+                      u { text-decoration: underline; }
+                      a { color: #60a5fa; text-decoration: underline; }
+                      a:hover { color: #93c5fd; }
+                    `,
+                    branding: false,
+                    statusbar: false,
+                    elementpath: false,
+                    paste_data_images: true,
+                    default_link_target: "_blank",
+                    link_assume_external_targets: true,
+                    target_list: false,
+                    link_title: false,
+                    automatic_uploads: true,
+                    file_picker_types: "image",
+                    images_upload_url: "http://localhost:5000/api/upload", // Optional: Add your upload endpoint
+                    relative_urls: false,
+                    remove_script_host: false,
+                    convert_urls: true,
+                  }}
+                />
               </div>
 
-              <textarea
-                ref={textareaRef}
-                name="description"
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl text-white focus:border-gray-500 transition resize-none"
-                value={aboutData.description}
-                onChange={handleChange}
-                placeholder="Write something about yourself..."
-                rows="8"
-              />
-
-              <div className="mt-2 text-xs text-gray-400">
-                <p>
-                  Formatting tips: Use **bold**, *italic*, • bullet points,
-                  [links](url)
-                </p>
-              </div>
+              {/* TINYMCE_REMOVED: Removed formatting tips since TinyMCE has visual toolbar */}
             </div>
 
             <div className="mt-8">
@@ -567,36 +501,8 @@ const AboutMe = ({ user }) => {
               </div>
 
               <div className="p-6">
-                {/* Description Section */}
-                <div className="mb-8 relative">
-                  <div className="absolute -left-2 top-0 w-0.5 h-full bg-gradient-to-b from-cyan-500 to-purple-500 rounded-full"></div>
-                  <div className="pl-5">
-                    <h3 className="text-lg font-semibold text-cyan-300 mb-4 flex items-center gap-3">
-                      <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
-                      Professional Bio
-                    </h3>
-                    <div className="space-y-4">
-                      {aboutData.description ? (
-                        <div className="text-gray-300 leading-relaxed text-sm space-y-3">
-                          {parseFormattedText(aboutData.description)}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 px-4 border-2 border-dashed border-gray-600/50 rounded-xl bg-gray-800/30">
-                          <FiEdit className="w-8 h-8 text-gray-500 mx-auto mb-3" />
-                          <p className="text-gray-400 italic">
-                            Your story begins here
-                          </p>
-                          <p className="text-gray-500 text-sm mt-1">
-                            Add your description to see it come alive
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
                 {/* Personal Information - Modern Dark Layout */}
-                <div className="pt-6 border-t border-gray-700/50">
+                <div className="pb-6">
                   <h3 className="text-lg font-semibold text-cyan-300 mb-6 flex items-center gap-3">
                     <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
                     Personal Details
@@ -771,6 +677,41 @@ const AboutMe = ({ user }) => {
                         </div>
                       </div>
                     )}
+                    {/* More About Me - Description Card */}
+                    <div className="group relative p-4 bg-gradient-to-r from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700/50 hover:border-blue-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/5">
+                      <div className="flex items-start gap-4">
+                        <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-3 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                          <FiGlobe className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-blue-300 font-medium mb-3 uppercase tracking-wider">
+                            More About Me
+                          </p>
+                          <div className="space-y-4">
+                            {aboutData.description ? (
+                              <div className="text-gray-300 leading-relaxed text-sm space-y-3 max-w-none preview-content">
+                                <div
+                                  dangerouslySetInnerHTML={{
+                                    __html: aboutData.description,
+                                  }}
+                                  className="preview-html-content"
+                                />
+                              </div>
+                            ) : (
+                              <div className="text-center py-6 px-4 border-2 border-dashed border-gray-600/50 rounded-xl bg-gray-800/30">
+                                <FiEdit className="w-6 h-6 text-gray-500 mx-auto mb-2" />
+                                <p className="text-gray-400 italic text-sm">
+                                  Your story begins here
+                                </p>
+                                <p className="text-gray-500 text-xs mt-1">
+                                  Add your description to see it come alive
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -778,6 +719,41 @@ const AboutMe = ({ user }) => {
           </div>
         </div>
       </div>
+
+      {/* Add custom styles for the preview content */}
+      <style jsx>{`
+        .preview-content ul,
+        .preview-content ol {
+          margin: 0.5rem 0;
+          padding-left: 1.5rem;
+        }
+        .preview-content li {
+          margin-bottom: 0.25rem;
+          list-style-position: outside;
+        }
+        .preview-content ul li {
+          list-style-type: disc;
+        }
+        .preview-content ol li {
+          list-style-type: decimal;
+        }
+        .preview-content strong {
+          font-weight: bold;
+        }
+        .preview-content em {
+          font-style: italic;
+        }
+        .preview-content u {
+          text-decoration: underline;
+        }
+        .preview-content a {
+          color: #60a5fa;
+          text-decoration: underline;
+        }
+        .preview-content a:hover {
+          color: #93c5fd;
+        }
+      `}</style>
     </div>
   );
 };

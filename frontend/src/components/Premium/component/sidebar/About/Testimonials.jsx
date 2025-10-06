@@ -10,12 +10,16 @@ import {
 import { toast } from "react-hot-toast";
 import AuthContext from "../../../../../context/AuthContext"; // Adjust import path as needed
 
+// TINYMCE_ADDED: Import TinyMCE Editor
+import { Editor } from "@tinymce/tinymce-react";
+
 const Testimonials = () => {
   const { checkAuth } = useContext(AuthContext);
   const [testimonials, setTestimonials] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [uploadingImages, setUploadingImages] = useState({});
+  const [savingTestimonial, setSavingTestimonial] = useState({});
+  const [isSavingAll, setIsSavingAll] = useState(false); // ADDED: Global save state
   const hasFetchedRef = useRef(false);
 
   // Loading timeout hook
@@ -115,6 +119,11 @@ const Testimonials = () => {
     );
   };
 
+  // TINYMCE_ADDED: New handler for editor content changes
+  const handleEditorChange = (id, content) => {
+    handleTestimonialChange(id, "text", content);
+  };
+
   const handleImageUpload = async (id, file) => {
     if (!file) return;
 
@@ -188,17 +197,15 @@ const Testimonials = () => {
       testimonials.length > 0
         ? Math.max(...testimonials.map((t) => t.id)) + 1
         : 1;
-    setTestimonials((prev) => [
-      ...prev,
-      {
-        id: newId,
-        name: "",
-        position: "",
-        company: "",
-        text: "",
-        avatar: "",
-      },
-    ]);
+    const newTestimonial = {
+      id: newId,
+      name: "",
+      position: "",
+      company: "",
+      text: "",
+      avatar: "",
+    };
+    setTestimonials((prev) => [newTestimonial, ...prev]);
   };
 
   const removeTestimonial = (id) => {
@@ -208,7 +215,7 @@ const Testimonials = () => {
     );
   };
 
-  const handleSave = async () => {
+  const handleSaveTestimonial = async (testimonial) => {
     // Check authentication before saving
     const isAuthenticated = await checkAuth();
     if (!isAuthenticated) {
@@ -216,7 +223,105 @@ const Testimonials = () => {
       return;
     }
 
-    setIsSaving(true);
+    setSavingTestimonial((prev) => ({ ...prev, [testimonial.id]: true }));
+
+    try {
+      const token = localStorage.getItem("token");
+
+      // First, get the current testimonials from the backend
+      const getResponse = await fetch("http://localhost:5000/api/about", {
+        headers: {
+          "x-auth-token": token,
+        },
+      });
+
+      if (getResponse.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        toast.error("Session expired. Please log in again.");
+        return;
+      }
+
+      if (!getResponse.ok) {
+        throw new Error(
+          `Failed to fetch current testimonials: ${getResponse.status}`
+        );
+      }
+
+      const getData = await getResponse.json();
+      let currentTestimonials = [];
+
+      if (getData.success && getData.data && getData.data.testimonials) {
+        currentTestimonials = getData.data.testimonials;
+      }
+
+      // Find if this testimonial already exists
+      const existingIndex = currentTestimonials.findIndex(
+        (t) => t.id === testimonial.id
+      );
+
+      let updatedTestimonials;
+      if (existingIndex !== -1) {
+        // Update existing testimonial
+        updatedTestimonials = currentTestimonials.map((t) =>
+          t.id === testimonial.id ? testimonial : t
+        );
+      } else {
+        // Add new testimonial
+        updatedTestimonials = [testimonial, ...currentTestimonials];
+      }
+
+      // Save the entire updated array
+      const response = await fetch(
+        "http://localhost:5000/api/about/testimonials",
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "x-auth-token": token,
+          },
+          body: JSON.stringify(updatedTestimonials),
+        }
+      );
+
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        toast.error("Session expired. Please log in again.");
+        return;
+      }
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast.success("Testimonial saved successfully!");
+        // Update local state to match what's on the server
+        setTestimonials(updatedTestimonials);
+      } else {
+        throw new Error(data.message || "Failed to save testimonial");
+      }
+    } catch (err) {
+      console.error("Save error:", err);
+      toast.error(err.message);
+    } finally {
+      setSavingTestimonial((prev) => ({ ...prev, [testimonial.id]: false }));
+    }
+  };
+
+  // ADDED: New function to save all testimonials at once
+  const handleSaveAllTestimonials = async () => {
+    const isAuthenticated = await checkAuth();
+    if (!isAuthenticated) {
+      toast.error("Please log in to save changes");
+      return;
+    }
+
+    if (testimonials.length === 0) {
+      toast.error("No testimonials to save");
+      return;
+    }
+
+    setIsSavingAll(true);
 
     try {
       const token = localStorage.getItem("token");
@@ -239,16 +344,18 @@ const Testimonials = () => {
         return;
       }
 
-      if (response.ok) {
-        toast.success("Testimonials saved successfully!");
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast.success("All testimonials saved successfully!");
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to save testimonials");
+        throw new Error(data.message || "Failed to save testimonials");
       }
     } catch (err) {
+      console.error("Save all error:", err);
       toast.error(err.message);
     } finally {
-      setIsSaving(false);
+      setIsSavingAll(false);
     }
   };
 
@@ -287,16 +394,41 @@ const Testimonials = () => {
                 <FiEdit className="w-5 h-5" />
                 Edit Testimonials
               </h2>
-              <button
-                onClick={addNewTestimonial}
-                className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 flex items-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
-              >
-                <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-                <span className="relative flex items-center gap-2">
-                  <FiPlus className="w-4 h-4" />
-                  Add Testimonial
-                </span>
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={addNewTestimonial}
+                  className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 flex items-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                  <span className="relative flex items-center gap-2">
+                    <FiPlus className="w-4 h-4" />
+                    Add Testimonial
+                  </span>
+                </button>
+                {/* ADDED: Global Save All Button */}
+                {testimonials.length > 0 && (
+                  <button
+                    onClick={handleSaveAllTestimonials}
+                    disabled={isSavingAll}
+                    className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all duration-300 disabled:opacity-50 flex items-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-green-500/20 transform hover:-translate-y-0.5 border border-green-500/30"
+                  >
+                    <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                    <span className="relative flex items-center gap-2">
+                      {isSavingAll ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Saving All...
+                        </>
+                      ) : (
+                        <>
+                          <FiSave className="w-4 h-4" />
+                          Save All
+                        </>
+                      )}
+                    </span>
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="space-y-6">
@@ -459,23 +591,105 @@ const Testimonials = () => {
                     </div>
                   </div>
 
+                  {/* TINYMCE_REPLACED: Replaced textarea with TinyMCE Editor */}
                   <div className="form-group">
                     <label className="block text-sm font-medium text-gray-300 mb-2">
                       Testimonial Text
                     </label>
-                    <textarea
-                      className="w-full px-4 py-3 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl text-white focus:border-gray-500 transition resize-none"
-                      rows="4"
-                      value={testimonial.text}
-                      onChange={(e) =>
-                        handleTestimonialChange(
-                          testimonial.id,
-                          "text",
-                          e.target.value
-                        )
-                      }
-                      placeholder="What did the client say about your service?"
-                    />
+                    <div className="bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl focus-within:border-gray-500 transition">
+                      <Editor
+                        apiKey="h2ar80nttlx4hli43ugzp4wvv9ej7q3feifsu8mqssyfga6s"
+                        value={testimonial.text}
+                        onEditorChange={(content) =>
+                          handleEditorChange(testimonial.id, content)
+                        }
+                        init={{
+                          height: 200,
+                          menubar: false,
+                          plugins: [
+                            "advlist",
+                            "autolink",
+                            "lists",
+                            "link",
+                            "image",
+                            "charmap",
+                            "preview",
+                            "anchor",
+                            "searchreplace",
+                            "visualblocks",
+                            "code",
+                            "fullscreen",
+                            "insertdatetime",
+                            "media",
+                            "table",
+                            "code",
+                            "help",
+                            "wordcount",
+                          ],
+                          toolbar:
+                            "undo redo | blocks | bold italic underline strikethrough | " +
+                            "forecolor backcolor | alignleft aligncenter alignright alignjustify | " +
+                            "bullist numlist outdent indent | link image | removeformat | help",
+                          skin: "oxide-dark",
+                          content_css: "dark",
+                          content_style: `
+                            body { 
+                              background: #1f2937; 
+                              color: #f9fafb; 
+                              font-family: Inter, sans-serif; 
+                              font-size: 14px; 
+                              line-height: 1.6; 
+                            }
+                            p { margin: 0 0 12px 0; }
+                            ul, ol { margin: 0 0 12px 0; padding-left: 20px; }
+                            li { margin-bottom: 4px; }
+                            strong { font-weight: bold; }
+                            em { font-style: italic; }
+                            u { text-decoration: underline; }
+                            a { color: #60a5fa; text-decoration: underline; }
+                            a:hover { color: #93c5fd; }
+                          `,
+                          branding: false,
+                          statusbar: false,
+                          elementpath: false,
+                          paste_data_images: true,
+                          default_link_target: "_blank",
+                          link_assume_external_targets: true,
+                          target_list: false,
+                          link_title: false,
+                          automatic_uploads: true,
+                          file_picker_types: "image",
+                          images_upload_url: "http://localhost:5000/api/upload",
+                          relative_urls: false,
+                          remove_script_host: false,
+                          convert_urls: true,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Individual Save Button for each testimonial */}
+                  <div className="mt-6">
+                    <button
+                      onClick={() => handleSaveTestimonial(testimonial)}
+                      disabled={savingTestimonial[testimonial.id]}
+                      className="w-full px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
+                    >
+                      <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                      <span className="relative flex items-center justify-center gap-2">
+                        {savingTestimonial[testimonial.id] ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <FiSave className="w-4 h-4" />
+                            Save Testimonial
+                          </>
+                        )}
+                      </span>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -497,29 +711,6 @@ const Testimonials = () => {
                   </button>
                 </div>
               )}
-            </div>
-
-            <div className="mt-8">
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="w-full px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
-              >
-                <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-                <span className="relative flex items-center justify-center gap-2">
-                  {isSaving ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <FiSave className="w-4 h-4" />
-                      Save Testimonials
-                    </>
-                  )}
-                </span>
-              </button>
             </div>
           </div>
 
@@ -609,12 +800,18 @@ const Testimonials = () => {
                               </p>
                             </div>
 
-                            <p className="text-gray-300 text-sm leading-relaxed italic">
-                              "
-                              {testimonial.text ||
-                                "Testimonial text will appear here..."}
-                              "
-                            </p>
+                            <div className="text-gray-300 text-sm leading-relaxed italic preview-content">
+                              {testimonial.text ? (
+                                <div
+                                  dangerouslySetInnerHTML={{
+                                    __html: testimonial.text,
+                                  }}
+                                  className="preview-html-content"
+                                />
+                              ) : (
+                                <p>"Testimonial text will appear here..."</p>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -636,6 +833,41 @@ const Testimonials = () => {
           </div>
         </div>
       </div>
+
+      {/* Add custom styles for the preview content */}
+      <style jsx>{`
+        .preview-content ul,
+        .preview-content ol {
+          margin: 0.5rem 0;
+          padding-left: 1.5rem;
+        }
+        .preview-content li {
+          margin-bottom: 0.25rem;
+          list-style-position: outside;
+        }
+        .preview-content ul li {
+          list-style-type: disc;
+        }
+        .preview-content ol li {
+          list-style-type: decimal;
+        }
+        .preview-content strong {
+          font-weight: bold;
+        }
+        .preview-content em {
+          font-style: italic;
+        }
+        .preview-content u {
+          text-decoration: underline;
+        }
+        .preview-content a {
+          color: #60a5fa;
+          text-decoration: underline;
+        }
+        .preview-content a:hover {
+          color: #93c5fd;
+        }
+      `}</style>
     </div>
   );
 };

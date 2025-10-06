@@ -14,8 +14,8 @@ const BrandAndClient = () => {
   const { checkAuth } = useContext(AuthContext);
   const [brands, setBrands] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [uploadingImages, setUploadingImages] = useState({});
+  const [savingBrand, setSavingBrand] = useState({});
   const hasFetchedRef = useRef(false);
 
   // Loading timeout hook
@@ -186,21 +186,19 @@ const BrandAndClient = () => {
   const addNewBrand = () => {
     const newId =
       brands.length > 0 ? Math.max(...brands.map((b) => b.id)) + 1 : 1;
-    setBrands((prev) => [
-      ...prev,
-      {
-        id: newId,
-        src: "",
-        alt: "",
-      },
-    ]);
+    const newBrand = {
+      id: newId,
+      src: "",
+      alt: "",
+    };
+    setBrands((prev) => [newBrand, ...prev]);
   };
 
   const removeBrand = (id) => {
     setBrands((prev) => prev.filter((brand) => brand.id !== id));
   };
 
-  const handleSave = async () => {
+  const handleSaveBrand = async (brand) => {
     // Check authentication before saving
     const isAuthenticated = await checkAuth();
     if (!isAuthenticated) {
@@ -208,7 +206,54 @@ const BrandAndClient = () => {
       return;
     }
 
-    setIsSaving(true);
+    setSavingBrand((prev) => ({ ...prev, [brand.id]: true }));
+
+    try {
+      const token = localStorage.getItem("token");
+
+      // Send ALL brands to the backend, not just the current one
+      const response = await fetch("http://localhost:5000/api/about/brands", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-auth-token": token,
+        },
+        body: JSON.stringify(brands), // Send the entire brands array
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        toast.error("Session expired. Please log in again.");
+        return;
+      }
+
+      if (response.ok) {
+        toast.success("Brands saved successfully!");
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to save brands");
+      }
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSavingBrand((prev) => ({ ...prev, [brand.id]: false }));
+    }
+  };
+
+  // New function to save all brands at once
+  const saveAllBrands = async () => {
+    // Check authentication before saving
+    const isAuthenticated = await checkAuth();
+    if (!isAuthenticated) {
+      toast.error("Please log in to save changes");
+      return;
+    }
+
+    if (brands.length === 0) {
+      toast.error("No brands to save");
+      return;
+    }
 
     try {
       const token = localStorage.getItem("token");
@@ -229,15 +274,13 @@ const BrandAndClient = () => {
       }
 
       if (response.ok) {
-        toast.success("Brands saved successfully!");
+        toast.success("All brands saved successfully!");
       } else {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to save brands");
       }
     } catch (err) {
       toast.error(err.message);
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -274,16 +317,28 @@ const BrandAndClient = () => {
                 <FiEdit className="w-5 h-5" />
                 Edit Brands & Clients
               </h2>
-              <button
-                onClick={addNewBrand}
-                className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 flex items-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
-              >
-                <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-                <span className="relative flex items-center gap-2">
-                  <FiPlus className="w-4 h-4" />
-                  Add Brand
-                </span>
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={saveAllBrands}
+                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 flex items-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-purple-500/20 transform hover:-translate-y-0.5 border border-purple-500/30"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                  <span className="relative flex items-center gap-2">
+                    <FiSave className="w-4 h-4" />
+                    Save All
+                  </span>
+                </button>
+                <button
+                  onClick={addNewBrand}
+                  className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 flex items-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                  <span className="relative flex items-center gap-2">
+                    <FiPlus className="w-4 h-4" />
+                    Add Brand
+                  </span>
+                </button>
+              </div>
             </div>
 
             <div className="space-y-6">
@@ -397,6 +452,30 @@ const BrandAndClient = () => {
                       />
                     </div>
                   </div>
+
+                  {/* Individual Save Button for each brand */}
+                  <div className="mt-6">
+                    <button
+                      onClick={() => handleSaveBrand(brand)}
+                      disabled={savingBrand[brand.id]}
+                      className="w-full px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
+                    >
+                      <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                      <span className="relative flex items-center justify-center gap-2">
+                        {savingBrand[brand.id] ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <FiSave className="w-4 h-4" />
+                            Save Brand
+                          </>
+                        )}
+                      </span>
+                    </button>
+                  </div>
                 </div>
               ))}
 
@@ -415,29 +494,6 @@ const BrandAndClient = () => {
                   </button>
                 </div>
               )}
-            </div>
-
-            <div className="mt-8">
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="w-full px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
-              >
-                <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-                <span className="relative flex items-center justify-center gap-2">
-                  {isSaving ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <FiSave className="w-4 h-4" />
-                      Save Brands
-                    </>
-                  )}
-                </span>
-              </button>
             </div>
           </div>
 

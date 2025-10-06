@@ -10,13 +10,12 @@ import {
   FiFileText,
   FiX,
   FiImage,
-  FiBold,
-  FiItalic,
-  FiList,
-  FiLink,
 } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import AuthContext from "../../../../../context/AuthContext";
+
+// TINYMCE_ADDED: Import TinyMCE Editor
+import { Editor } from "@tinymce/tinymce-react";
 
 const BlogCreate = () => {
   const { checkAuth } = useContext(AuthContext);
@@ -35,8 +34,7 @@ const BlogCreate = () => {
   });
   const [files, setFiles] = useState({ image: null });
 
-  // Text formatting refs
-  const textareaRef = useRef(null);
+  // TINYMCE_REMOVED: Removed textareaRef and formatting functions since TinyMCE handles formatting
 
   // Loading timeout hook
   const useLoadingTimeout = (loadingState, timeout = 10000) => {
@@ -130,6 +128,11 @@ const BlogCreate = () => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  // TINYMCE_ADDED: New handler for editor content changes
+  const handleEditorChange = (content) => {
+    handleFormChange("content", content);
+  };
+
   const handleImageUpload = async (file) => {
     if (!file) return;
 
@@ -220,7 +223,7 @@ const BlogCreate = () => {
         category: form.category, // This is now the category name string
         content: form.content,
         image: files.image,
-        excerpt: form.content.substring(0, 150) + "...",
+        excerpt: form.content.replace(/<[^>]*>/g, "").substring(0, 150) + "...", // TINYMCE_UPDATED: Strip HTML tags for excerpt
         date: new Date().toISOString().split("T")[0],
       };
 
@@ -257,103 +260,7 @@ const BlogCreate = () => {
     }
   };
 
-  // Text formatting function
-  const formatText = (format) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-
-    const currentContent = form.content;
-    const selectedText = currentContent.substring(start, end);
-
-    let formattedText = "";
-    let newStart = start;
-    let newEnd = end;
-
-    switch (format) {
-      case "bold":
-        formattedText = `**${selectedText}**`;
-        newStart = start + 2;
-        newEnd = end + 2;
-        break;
-      case "italic":
-        formattedText = `*${selectedText}*`;
-        newStart = start + 1;
-        newEnd = end + 1;
-        break;
-      case "bullet":
-        if (selectedText) {
-          formattedText = `• ${selectedText}`;
-          newStart = start + 2;
-          newEnd = end + 2;
-        } else {
-          formattedText = "• ";
-          newStart = start + 2;
-          newEnd = start + 2;
-        }
-        break;
-      case "link":
-        formattedText = `[${selectedText || "link"}](${
-          selectedText ? "url" : "https://example.com"
-        })`;
-        newStart = start + 1;
-        newEnd = selectedText ? end + 1 : start + 5;
-        break;
-      default:
-        formattedText = selectedText;
-    }
-
-    const newContent =
-      currentContent.substring(0, start) +
-      formattedText +
-      currentContent.substring(end);
-
-    handleFormChange("content", newContent);
-
-    setTimeout(() => {
-      if (textarea) {
-        textarea.focus();
-        textarea.setSelectionRange(newStart, newEnd);
-      }
-    }, 0);
-  };
-
-  // Parse formatted text for preview
-  const parseFormattedText = (text) => {
-    if (!text) return null;
-
-    return text.split("\n").map((line, index) => {
-      if (line.trim().startsWith("•")) {
-        return (
-          <div key={index} className="flex items-start">
-            <span className="mr-2">•</span>
-            <span>{line.replace("•", "").trim()}</span>
-          </div>
-        );
-      }
-
-      let formattedLine = line;
-      formattedLine = formattedLine.replace(
-        /\*\*(.*?)\*\*/g,
-        "<strong>$1</strong>"
-      );
-      formattedLine = formattedLine.replace(/\*(.*?)\*/g, "<em>$1</em>");
-      formattedLine = formattedLine.replace(
-        /\[(.*?)\]\((.*?)\)/g,
-        '<a href="$2" class="text-blue-600 underline">$1</a>'
-      );
-
-      return (
-        <p
-          key={index}
-          className="text-white leading-relaxed text-sm mb-3"
-          dangerouslySetInnerHTML={{ __html: formattedLine }}
-        />
-      );
-    });
-  };
+  // TINYMCE_REMOVED: Removed all formatting functions (formatText, parseFormattedText) since TinyMCE handles all formatting internally
 
   if (isLoading) {
     return (
@@ -496,56 +403,93 @@ const BlogCreate = () => {
                   Content *
                 </label>
 
-                <div className="flex gap-2 mb-3 p-3 bg-gray-800 rounded-lg border border-gray-700">
-                  <button
-                    type="button"
-                    onClick={() => formatText("bold")}
-                    className="p-2 hover:bg-gray-700 rounded transition"
-                    title="Bold"
-                  >
-                    <FiBold className="w-4 h-4 text-gray-300" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => formatText("italic")}
-                    className="p-2 hover:bg-gray-700 rounded transition"
-                    title="Italic"
-                  >
-                    <FiItalic className="w-4 h-4 text-gray-300" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => formatText("bullet")}
-                    className="p-2 hover:bg-gray-700 rounded transition"
-                    title="Bullet List"
-                  >
-                    <FiList className="w-4 h-4 text-gray-300" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => formatText("link")}
-                    className="p-2 hover:bg-gray-700 rounded transition"
-                    title="Add Link"
-                  >
-                    <FiLink className="w-4 h-4 text-gray-300" />
-                  </button>
+                {/* TINYMCE_REPLACED: Replaced custom formatting toolbar and textarea with TinyMCE Editor */}
+                <div className="bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl focus-within:border-gray-500 transition">
+                  <Editor
+                    apiKey="h2ar80nttlx4hli43ugzp4wvv9ej7q3feifsu8mqssyfga6s" // TINYMCE_ADDED: Your API key
+                    value={form.content}
+                    onEditorChange={handleEditorChange}
+                    init={{
+                      height: 400,
+                      menubar: false,
+                      plugins: [
+                        "advlist",
+                        "autolink",
+                        "lists",
+                        "link",
+                        "image",
+                        "charmap",
+                        "preview",
+                        "anchor",
+                        "searchreplace",
+                        "visualblocks",
+                        "code",
+                        "fullscreen",
+                        "insertdatetime",
+                        "media",
+                        "table",
+                        "code",
+                        "help",
+                        "wordcount",
+                      ],
+                      toolbar:
+                        "undo redo | blocks | bold italic underline strikethrough | " +
+                        "forecolor backcolor | alignleft aligncenter alignright alignjustify | " +
+                        "bullist numlist outdent indent | link image | removeformat | help",
+                      skin: "oxide-dark",
+                      content_css: "dark",
+                      content_style: `
+                        body { 
+                          background: #1f2937; 
+                          color: #f9fafb; 
+                          font-family: Inter, sans-serif; 
+                          font-size: 14px; 
+                          line-height: 1.6; 
+                        }
+                        p { margin: 0 0 12px 0; }
+                        ul, ol { margin: 0 0 12px 0; padding-left: 20px; }
+                        li { margin-bottom: 4px; }
+                        strong { font-weight: bold; }
+                        em { font-style: italic; }
+                        u { text-decoration: underline; }
+                        a { color: #60a5fa; text-decoration: underline; }
+                        a:hover { color: #93c5fd; }
+                        h1, h2, h3, h4, h5, h6 { 
+                          color: #f9fafb; 
+                          margin: 16px 0 8px 0;
+                          font-weight: bold;
+                        }
+                        h1 { font-size: 24px; }
+                        h2 { font-size: 20px; }
+                        h3 { font-size: 18px; }
+                        h4 { font-size: 16px; }
+                        blockquote { 
+                          border-left: 4px solid #60a5fa; 
+                          padding-left: 16px; 
+                          margin: 16px 0;
+                          font-style: italic;
+                          color: #d1d5db;
+                        }
+                      `,
+                      branding: false,
+                      statusbar: false,
+                      elementpath: false,
+                      paste_data_images: true,
+                      default_link_target: "_blank",
+                      link_assume_external_targets: true,
+                      target_list: false,
+                      link_title: false,
+                      automatic_uploads: true,
+                      file_picker_types: "image",
+                      images_upload_url: "http://localhost:5000/api/upload", // Optional: Add your upload endpoint
+                      relative_urls: false,
+                      remove_script_host: false,
+                      convert_urls: true,
+                    }}
+                  />
                 </div>
 
-                <textarea
-                  ref={textareaRef}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl text-white focus:border-gray-500 transition resize-none"
-                  value={form.content}
-                  onChange={(e) => handleFormChange("content", e.target.value)}
-                  placeholder="Write your blog content here..."
-                  rows="12"
-                />
-
-                <div className="mt-2 text-xs text-gray-400">
-                  <p>
-                    Formatting tips: Use **bold**, *italic*, • bullet points,
-                    [links](url)
-                  </p>
-                </div>
+                {/* TINYMCE_REMOVED: Removed formatting tips since TinyMCE has visual toolbar */}
               </div>
 
               <button
@@ -645,12 +589,16 @@ const BlogCreate = () => {
                       </h3>
 
                       {/* Blog Content Preview */}
-                      <div className="text-gray-300 text-sm leading-relaxed mb-4">
+                      <div className="text-gray-300 text-sm leading-relaxed mb-4 max-w-none preview-content">
                         {form.content ? (
-                          parseFormattedText(
-                            form.content.substring(0, 200) +
-                              (form.content.length > 200 ? "..." : "")
-                          )
+                          <div
+                            dangerouslySetInnerHTML={{
+                              __html:
+                                form.content.substring(0, 500) +
+                                (form.content.length > 500 ? "..." : ""),
+                            }}
+                            className="preview-html-content"
+                          />
                         ) : (
                           <p className="text-gray-400 italic">
                             No content yet...
@@ -688,6 +636,70 @@ const BlogCreate = () => {
           </div>
         </div>
       </div>
+
+      {/* Add custom styles for the preview content */}
+      <style jsx>{`
+        .preview-content ul,
+        .preview-content ol {
+          margin: 0.5rem 0;
+          padding-left: 1.5rem;
+        }
+        .preview-content li {
+          margin-bottom: 0.25rem;
+          list-style-position: outside;
+        }
+        .preview-content ul li {
+          list-style-type: disc;
+        }
+        .preview-content ol li {
+          list-style-type: decimal;
+        }
+        .preview-content strong {
+          font-weight: bold;
+        }
+        .preview-content em {
+          font-style: italic;
+        }
+        .preview-content u {
+          text-decoration: underline;
+        }
+        .preview-content a {
+          color: #60a5fa;
+          text-decoration: underline;
+        }
+        .preview-content a:hover {
+          color: #93c5fd;
+        }
+        .preview-content h1,
+        .preview-content h2,
+        .preview-content h3,
+        .preview-content h4,
+        .preview-content h5,
+        .preview-content h6 {
+          color: #f9fafb;
+          margin: 16px 0 8px 0;
+          font-weight: bold;
+        }
+        .preview-content h1 {
+          font-size: 24px;
+        }
+        .preview-content h2 {
+          font-size: 20px;
+        }
+        .preview-content h3 {
+          font-size: 18px;
+        }
+        .preview-content h4 {
+          font-size: 16px;
+        }
+        .preview-content blockquote {
+          border-left: 4px solid #60a5fa;
+          padding-left: 16px;
+          margin: 16px 0;
+          font-style: italic;
+          color: #d1d5db;
+        }
+      `}</style>
     </div>
   );
 };

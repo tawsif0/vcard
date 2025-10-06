@@ -265,4 +265,293 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// PATCH /update-profile - Update user name and email
+router.patch("/update-profile", auth, async (req, res) => {
+  try {
+    const { name, email } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({
+        success: false,
+        message: "Name and email are required",
+      });
+    }
+
+    // Check if email is already taken by ANOTHER user (excluding current user)
+    if (email !== req.user.email) {
+      const existingUser = await User.findOne({
+        email: email.trim().toLowerCase(),
+        _id: { $ne: req.user.id }, // Exclude current user from the check
+      });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: "Email is already taken by another user",
+        });
+      }
+    }
+
+    // Update user profile
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+      },
+      { new: true }
+    ).select("-password");
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Profile updated successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("Update profile error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error during profile update",
+    });
+  }
+});
+
+// POST /reset-password - Reset user password
+router.post("/reset-password", auth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password and new password are required",
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be at least 8 characters",
+      });
+    }
+
+    // Get user with password
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password is incorrect",
+      });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update password
+    user.password = hashedPassword;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Password reset successfully",
+    });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error during password reset",
+    });
+  }
+});
+
+// NEW: Send verification code for email change
+router.post("/send-verification-code", auth, async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    // Check if email is already taken by another user
+    const existingUser = await User.findOne({
+      email: email.trim().toLowerCase(),
+      _id: { $ne: req.user.id },
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is already taken by another user",
+      });
+    }
+
+    // Generate 6-digit verification code
+    const verificationCode = Math.floor(
+      100000 + Math.random() * 900000
+    ).toString();
+    const verificationExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    // Store verification code in user document
+    await User.findByIdAndUpdate(req.user.id, {
+      emailVerification: {
+        code: verificationCode,
+        expiresAt: verificationExpires,
+        pendingEmail: email.trim().toLowerCase(),
+      },
+    });
+
+    // Send verification email
+    try {
+      await transporter.sendMail({
+        from: `"YourAppName" <${process.env.SMTP_USER}>`,
+        to: email,
+        subject: "Email Change Verification Code",
+        text: `Your verification code is: ${verificationCode}. This code will expire in 15 minutes.`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">Email Change Verification</h2>
+            <p>You requested to change your email address. Use the verification code below to confirm this change:</p>
+            <div style="background: #f4f4f4; padding: 15px; text-align: center; margin: 20px 0;">
+              <h1 style="margin: 0; color: #333; letter-spacing: 5px;">${verificationCode}</h1>
+            </div>
+            <p style="color: #666; font-size: 14px;">This code will expire in 15 minutes.</p>
+            <p style="color: #666; font-size: 14px;">If you didn't request this change, please ignore this email.</p>
+          </div>
+        `,
+      });
+    } catch (emailError) {
+      console.error("Error sending verification email:", emailError);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send verification email",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Verification code sent to your email",
+    });
+  } catch (error) {
+    console.error("Send verification code error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error during verification code sending",
+    });
+  }
+});
+
+// NEW: Verify email change code and update email
+router.post("/verify-email-code", auth, async (req, res) => {
+  try {
+    const { code, newEmail } = req.body;
+
+    if (!code || !newEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Verification code and new email are required",
+      });
+    }
+
+    // Get user with verification data
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Check if verification data exists
+    if (!user.emailVerification || !user.emailVerification.code) {
+      return res.status(400).json({
+        success: false,
+        message: "No pending email verification found",
+      });
+    }
+
+    // Check if code matches
+    if (user.emailVerification.code !== code) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid verification code",
+      });
+    }
+
+    // Check if code is expired
+    if (user.emailVerification.expiresAt < new Date()) {
+      // Clear expired verification data
+      await User.findByIdAndUpdate(req.user.id, {
+        $unset: { emailVerification: 1 },
+      });
+      return res.status(400).json({
+        success: false,
+        message: "Verification code has expired",
+      });
+    }
+
+    // Check if the pending email matches
+    if (user.emailVerification.pendingEmail !== newEmail.trim().toLowerCase()) {
+      return res.status(400).json({
+        success: false,
+        message: "Email mismatch",
+      });
+    }
+
+    // Final check if email is still available
+    const existingUser = await User.findOne({
+      email: newEmail.trim().toLowerCase(),
+      _id: { $ne: req.user.id },
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is already taken by another user",
+      });
+    }
+
+    // Update user email and clear verification data
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      {
+        email: newEmail.trim().toLowerCase(),
+        $unset: { emailVerification: 1 },
+      },
+      { new: true }
+    ).select("-password");
+
+    res.json({
+      success: true,
+      message: "Email updated successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("Verify email code error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error during email verification",
+    });
+  }
+});
+
 module.exports = router;

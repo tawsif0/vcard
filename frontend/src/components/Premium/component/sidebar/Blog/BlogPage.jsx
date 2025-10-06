@@ -192,6 +192,12 @@ const BlogPage = () => {
     return categoryMatch && searchMatch;
   });
 
+  // Function to strip HTML tags and get clean text
+  const stripHtmlTags = (html) => {
+    if (!html) return "";
+    return html.replace(/<[^>]*>/g, "");
+  };
+
   // Parse formatted text
   const parseFormattedText = (text) => {
     if (!text) return null;
@@ -307,7 +313,7 @@ const BlogPage = () => {
         {/* Blog Detail Content */}
         <section className="py-8 relative z-10">
           <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto">
+            <div className="w-full mx-auto">
               <div className="bg-gray-900/20 backdrop-blur-md rounded-2xl shadow-lg border border-gray-700/30 overflow-hidden">
                 {/* Blog Header */}
                 <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-8 border-b border-gray-700/30">
@@ -355,7 +361,13 @@ const BlogPage = () => {
                 {/* Blog Content */}
                 <div className="p-8">
                   <div className="prose max-w-none text-gray-300 leading-relaxed text-base">
-                    {parseFormattedText(selectedBlog.content) || (
+                    {selectedBlog.content ? (
+                      <div
+                        dangerouslySetInnerHTML={{
+                          __html: selectedBlog.content,
+                        }}
+                      />
+                    ) : (
                       <div className="text-center py-12">
                         <div className="w-16 h-16 bg-gray-800/50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-gray-700/30">
                           <FiFileText className="w-8 h-8 text-gray-500" />
@@ -617,10 +629,9 @@ const BlogPage = () => {
                           {/* Excerpt */}
                           <p className="text-gray-400 text-sm mb-4 line-clamp-3">
                             {blog.content
-                              ?.replace(/\*\*(.*?)\*\*/g, "$1")
-                              .replace(/\*(.*?)\*/g, "$1")
-                              .substring(0, 120)}
-                            ...
+                              ? stripHtmlTags(blog.content).substring(0, 120) +
+                                "..."
+                              : "No content available..."}
                           </p>
 
                           {/* Meta Information */}

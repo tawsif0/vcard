@@ -18,7 +18,12 @@ import MySkills from "../sidebar/Resume/MySkills";
 import WorkExperience from "../sidebar/Resume/WorkExperience";
 
 import Contact from "../sidebar/Contact/Contact";
+//Portfolio Components
 import Portfolio from "../sidebar/Portfolio/Portfolio";
+
+import PortfolioCategory from "../sidebar/Portfolio/PortfolioCategory";
+import CreatePortfolio from "../sidebar/Portfolio/CreatePortfolio";
+
 import DashboardHome from "../sidebar/Home/DashboardHome";
 import HomeCard from "../sidebar/Home/HomeCard";
 import AboutPage from "../sidebar/About/AboutPage";
@@ -32,6 +37,7 @@ import BlogCreate from "../sidebar/Blog/BlogCreate";
 import ModifyBlog from "../sidebar/Blog/ModifyBlog";
 import Blog from "../sidebar/Blog/BlogPage";
 import BlogPage from "../sidebar/Blog/BlogPage";
+import Navbar from "../sidebar/Navbar/Navbar";
 
 const PremiumDashboard = () => {
   const [activeView, setActiveView] = useState(() => {
@@ -77,6 +83,8 @@ const PremiumDashboard = () => {
 
     switch (currentView) {
       // Dashboard Home
+      case "navbar":
+        return <Navbar />;
       case "DashboardHome":
         return <DashboardHome />;
       case "homeCard":
@@ -110,6 +118,10 @@ const PremiumDashboard = () => {
       // Portfolio Section
       case "portfolio":
         return <Portfolio />;
+      case "portfolioCategory":
+        return <PortfolioCategory />;
+      case "createPortfolio":
+        return <CreatePortfolio />;
       // Blog Section
       case "blogCategory":
         return <BlogCategory />;

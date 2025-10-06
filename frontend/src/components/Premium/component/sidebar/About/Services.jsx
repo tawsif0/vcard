@@ -9,6 +9,7 @@ import {
 } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import AuthContext from "../../../../../context/AuthContext";
+import { Editor } from "@tinymce/tinymce-react";
 
 const Services = () => {
   const { checkAuth } = useContext(AuthContext);
@@ -16,6 +17,7 @@ const Services = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingImages, setUploadingImages] = useState({});
+  const [savingService, setSavingService] = useState({});
   const hasFetchedRef = useRef(false);
 
   // Loading timeout hook
@@ -111,6 +113,10 @@ const Services = () => {
     );
   };
 
+  const handleEditorChange = (id, content) => {
+    handleServiceChange(id, "desc", content);
+  };
+
   const handleImageUpload = async (id, file) => {
     if (!file) return;
 
@@ -182,25 +188,116 @@ const Services = () => {
   const addNewService = () => {
     const newId =
       services.length > 0 ? Math.max(...services.map((s) => s.id)) + 1 : 1;
-    setServices((prev) => [
-      ...prev,
-      {
-        id: newId,
-        title: "",
-        image: "",
-        desc: "",
-      },
-    ]);
+    const newService = {
+      id: newId,
+      title: "",
+      image: "",
+      desc: "",
+    };
+    setServices((prev) => [newService, ...prev]);
   };
 
   const removeService = (id) => {
     setServices((prev) => prev.filter((service) => service.id !== id));
   };
 
-  const handleSave = async () => {
+  const handleSaveService = async (service) => {
     const isAuthenticated = await checkAuth();
     if (!isAuthenticated) {
       toast.error("Please log in to save changes");
+      return;
+    }
+
+    setSavingService((prev) => ({ ...prev, [service.id]: true }));
+
+    try {
+      const token = localStorage.getItem("token");
+
+      // First, get the current services from the backend
+      const getResponse = await fetch("http://localhost:5000/api/about", {
+        headers: {
+          "x-auth-token": token,
+        },
+      });
+
+      if (getResponse.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        toast.error("Session expired. Please log in again.");
+        return;
+      }
+
+      if (!getResponse.ok) {
+        throw new Error("Failed to fetch current services");
+      }
+
+      const getData = await getResponse.json();
+      let currentServices = [];
+
+      if (getData.success && getData.data.services) {
+        currentServices = getData.data.services;
+      }
+
+      // Find if the service already exists
+      const existingServiceIndex = currentServices.findIndex(
+        (s) => s.id === service.id
+      );
+
+      let updatedServices;
+      if (existingServiceIndex !== -1) {
+        // Update existing service
+        updatedServices = currentServices.map((s) =>
+          s.id === service.id ? service : s
+        );
+      } else {
+        // Add new service
+        updatedServices = [service, ...currentServices];
+      }
+
+      // Send all services to the backend
+      const response = await fetch("http://localhost:5000/api/about/services", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-auth-token": token,
+        },
+        body: JSON.stringify(updatedServices),
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        toast.error("Session expired. Please log in again.");
+        return;
+      }
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast.success("Service saved successfully!");
+        // Update local state with the confirmed services from backend
+        setServices(updatedServices);
+      } else {
+        throw new Error(data.message || "Failed to save service");
+      }
+    } catch (err) {
+      console.error("Save error:", err);
+      toast.error(err.message);
+    } finally {
+      setSavingService((prev) => ({ ...prev, [service.id]: false }));
+    }
+  };
+
+  // New function to save all services at once
+  const handleSaveAllServices = async () => {
+    const isAuthenticated = await checkAuth();
+    if (!isAuthenticated) {
+      toast.error("Please log in to save changes");
+      return;
+    }
+
+    if (services.length === 0) {
+      toast.error("No services to save");
       return;
     }
 
@@ -227,11 +324,12 @@ const Services = () => {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        toast.success("Services saved successfully!");
+        toast.success("All services saved successfully!");
       } else {
         throw new Error(data.message || "Failed to save services");
       }
     } catch (err) {
+      console.error("Save all error:", err);
       toast.error(err.message);
     } finally {
       setIsSaving(false);
@@ -271,16 +369,40 @@ const Services = () => {
                 <FiEdit className="w-5 h-5" />
                 Edit Services
               </h2>
-              <button
-                onClick={addNewService}
-                className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 flex items-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
-              >
-                <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-                <span className="relative flex items-center gap-2">
-                  <FiPlus className="w-4 h-4" />
-                  Add Service
-                </span>
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={addNewService}
+                  className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 flex items-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                  <span className="relative flex items-center gap-2">
+                    <FiPlus className="w-4 h-4" />
+                    Add Service
+                  </span>
+                </button>
+                {services.length > 0 && (
+                  <button
+                    onClick={handleSaveAllServices}
+                    disabled={isSaving}
+                    className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all duration-300 disabled:opacity-50 flex items-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-green-500/20 transform hover:-translate-y-0.5 border border-green-500/30"
+                  >
+                    <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                    <span className="relative flex items-center gap-2">
+                      {isSaving ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Saving All...
+                        </>
+                      ) : (
+                        <>
+                          <FiSave className="w-4 h-4" />
+                          Save All
+                        </>
+                      )}
+                    </span>
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="space-y-6">
@@ -409,15 +531,100 @@ const Services = () => {
                     <label className="block text-sm font-medium text-gray-300 mb-2">
                       Description
                     </label>
-                    <textarea
-                      className="w-full px-4 py-3 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl text-white focus:border-gray-500 transition resize-none"
-                      rows="3"
-                      value={service.desc}
-                      onChange={(e) =>
-                        handleServiceChange(service.id, "desc", e.target.value)
-                      }
-                      placeholder="Describe your service in detail..."
-                    />
+                    <div className="bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl focus-within:border-gray-500 transition">
+                      <Editor
+                        apiKey="h2ar80nttlx4hli43ugzp4wvv9ej7q3feifsu8mqssyfga6s"
+                        value={service.desc}
+                        onEditorChange={(content) =>
+                          handleEditorChange(service.id, content)
+                        }
+                        init={{
+                          height: 300,
+                          menubar: false,
+                          plugins: [
+                            "advlist",
+                            "autolink",
+                            "lists",
+                            "link",
+                            "image",
+                            "charmap",
+                            "preview",
+                            "anchor",
+                            "searchreplace",
+                            "visualblocks",
+                            "code",
+                            "fullscreen",
+                            "insertdatetime",
+                            "media",
+                            "table",
+                            "code",
+                            "help",
+                            "wordcount",
+                          ],
+                          toolbar:
+                            "undo redo | blocks | bold italic underline strikethrough | " +
+                            "forecolor backcolor | alignleft aligncenter alignright alignjustify | " +
+                            "bullist numlist outdent indent | link image | removeformat | help",
+                          skin: "oxide-dark",
+                          content_css: "dark",
+                          content_style: `
+                            body { 
+                              background: #1f2937; 
+                              color: #f9fafb; 
+                              font-family: Inter, sans-serif; 
+                              font-size: 14px; 
+                              line-height: 1.6; 
+                            }
+                            p { margin: 0 0 12px 0; }
+                            ul, ol { margin: 0 0 12px 0; padding-left: 20px; }
+                            li { margin-bottom: 4px; }
+                            strong { font-weight: bold; }
+                            em { font-style: italic; }
+                            u { text-decoration: underline; }
+                            a { color: #60a5fa; text-decoration: underline; }
+                            a:hover { color: #93c5fd; }
+                          `,
+                          branding: false,
+                          statusbar: false,
+                          elementpath: false,
+                          paste_data_images: true,
+                          default_link_target: "_blank",
+                          link_assume_external_targets: true,
+                          target_list: false,
+                          link_title: false,
+                          automatic_uploads: true,
+                          file_picker_types: "image",
+                          images_upload_url: "http://localhost:5000/api/upload",
+                          relative_urls: false,
+                          remove_script_host: false,
+                          convert_urls: true,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Individual Save Button for each service */}
+                  <div className="mt-6">
+                    <button
+                      onClick={() => handleSaveService(service)}
+                      disabled={savingService[service.id]}
+                      className="w-full px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
+                    >
+                      <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                      <span className="relative flex items-center justify-center gap-2">
+                        {savingService[service.id] ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <FiSave className="w-4 h-4" />
+                            Save Service
+                          </>
+                        )}
+                      </span>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -434,29 +641,6 @@ const Services = () => {
                   </button>
                 </div>
               )}
-            </div>
-
-            <div className="mt-8">
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="w-full px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
-              >
-                <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-                <span className="relative flex items-center justify-center gap-2">
-                  {isSaving ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <FiSave className="w-4 h-4" />
-                      Save Services
-                    </>
-                  )}
-                </span>
-              </button>
             </div>
           </div>
 
@@ -541,10 +725,18 @@ const Services = () => {
 
                         {/* Description below title */}
                         <div className="text-center">
-                          <p className="text-gray-300 text-sm leading-relaxed">
-                            {service.desc ||
-                              "Service description will appear here..."}
-                          </p>
+                          <div className="text-gray-300 text-sm leading-relaxed preview-content">
+                            {service.desc ? (
+                              <div
+                                dangerouslySetInnerHTML={{
+                                  __html: service.desc,
+                                }}
+                                className="preview-html-content text-left"
+                              />
+                            ) : (
+                              "Service description will appear here..."
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -565,6 +757,41 @@ const Services = () => {
           </div>
         </div>
       </div>
+
+      {/* Add custom styles for the preview content */}
+      <style jsx>{`
+        .preview-content ul,
+        .preview-content ol {
+          margin: 0.5rem 0;
+          padding-left: 1.5rem;
+        }
+        .preview-content li {
+          margin-bottom: 0.25rem;
+          list-style-position: outside;
+        }
+        .preview-content ul li {
+          list-style-type: disc;
+        }
+        .preview-content ol li {
+          list-style-type: decimal;
+        }
+        .preview-content strong {
+          font-weight: bold;
+        }
+        .preview-content em {
+          font-style: italic;
+        }
+        .preview-content u {
+          text-decoration: underline;
+        }
+        .preview-content a {
+          color: #60a5fa;
+          text-decoration: underline;
+        }
+        .preview-content a:hover {
+          color: #93c5fd;
+        }
+      `}</style>
     </div>
   );
 };

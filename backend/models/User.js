@@ -64,6 +64,12 @@ const userSchema = new mongoose.Schema({
     // Service holder specific fields
     officialPosition: String,
   },
+  //Profile Update
+  emailVerification: {
+    code: String,
+    expiresAt: Date,
+    pendingEmail: String,
+  },
 
   createdAt: { type: Date, default: Date.now },
 });

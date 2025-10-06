@@ -15,7 +15,7 @@ const PricingPlan = () => {
   const { checkAuth } = useContext(AuthContext);
   const [pricingPlans, setPricingPlans] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [savingPlan, setSavingPlan] = useState({});
   const hasFetchedRef = useRef(false);
 
   // Loading timeout hook
@@ -135,20 +135,18 @@ const PricingPlan = () => {
       pricingPlans.length > 0
         ? Math.max(...pricingPlans.map((p) => p.id)) + 1
         : 1;
-    setPricingPlans((prev) => [
-      ...prev,
-      {
-        id: newId,
-        name: "",
-        price: "",
-        period: "month",
-        features: [
-          { id: 1, text: "", included: true },
-          { id: 2, text: "", included: true },
-          { id: 3, text: "", included: true },
-        ],
-      },
-    ]);
+    const newPlan = {
+      id: newId,
+      name: "",
+      price: "",
+      period: "month",
+      features: [
+        { id: 1, text: "", included: true },
+        { id: 2, text: "", included: true },
+        { id: 3, text: "", included: true },
+      ],
+    };
+    setPricingPlans((prev) => [newPlan, ...prev]);
   };
 
   const removePlan = (id) => {
@@ -210,7 +208,7 @@ const PricingPlan = () => {
     );
   };
 
-  const handleSave = async () => {
+  const handleSavePlan = async (plan) => {
     // Check authentication before saving
     const isAuthenticated = await checkAuth();
     if (!isAuthenticated) {
@@ -218,7 +216,62 @@ const PricingPlan = () => {
       return;
     }
 
-    setIsSaving(true);
+    setSavingPlan((prev) => ({ ...prev, [plan.id]: true }));
+
+    try {
+      const token = localStorage.getItem("token");
+
+      // Create updated plans array - either update existing or add new
+      const updatedPlans = pricingPlans.map((p) =>
+        p.id === plan.id ? plan : p
+      );
+
+      const response = await fetch("http://localhost:5000/api/about/pricing", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-auth-token": token,
+        },
+        body: JSON.stringify(updatedPlans), // Send ALL plans, not just the current one
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        toast.error("Session expired. Please log in again.");
+        return;
+      }
+
+      if (response.ok) {
+        toast.success("Pricing plan saved successfully!");
+        // Update local state with the saved data
+        setPricingPlans(updatedPlans);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to save pricing plan");
+      }
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSavingPlan((prev) => ({ ...prev, [plan.id]: false }));
+    }
+  };
+
+  // New function to save all plans at once
+  const handleSaveAllPlans = async () => {
+    // Check authentication before saving
+    const isAuthenticated = await checkAuth();
+    if (!isAuthenticated) {
+      toast.error("Please log in to save changes");
+      return;
+    }
+
+    if (pricingPlans.length === 0) {
+      toast.error("No pricing plans to save");
+      return;
+    }
+
+    setSavingPlan((prev) => ({ ...prev, all: true }));
 
     try {
       const token = localStorage.getItem("token");
@@ -239,7 +292,7 @@ const PricingPlan = () => {
       }
 
       if (response.ok) {
-        toast.success("Pricing plans saved successfully!");
+        toast.success("All pricing plans saved successfully!");
       } else {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to save pricing plans");
@@ -247,7 +300,7 @@ const PricingPlan = () => {
     } catch (err) {
       toast.error(err.message);
     } finally {
-      setIsSaving(false);
+      setSavingPlan((prev) => ({ ...prev, all: false }));
     }
   };
 
@@ -286,16 +339,40 @@ const PricingPlan = () => {
                 <FiEdit className="w-5 h-5" />
                 Edit Pricing Plans
               </h2>
-              <button
-                onClick={addNewPlan}
-                className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 flex items-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
-              >
-                <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-                <span className="relative flex items-center gap-2">
-                  <FiPlus className="w-4 h-4" />
-                  Add Plan
-                </span>
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={addNewPlan}
+                  className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 flex items-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                  <span className="relative flex items-center gap-2">
+                    <FiPlus className="w-4 h-4" />
+                    Add Plan
+                  </span>
+                </button>
+                {pricingPlans.length > 0 && (
+                  <button
+                    onClick={handleSaveAllPlans}
+                    disabled={savingPlan.all}
+                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 disabled:opacity-50 flex items-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-purple-500/20 transform hover:-translate-y-0.5 border border-purple-500/30"
+                  >
+                    <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                    <span className="relative flex items-center gap-2">
+                      {savingPlan.all ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Saving All...
+                        </>
+                      ) : (
+                        <>
+                          <FiSave className="w-4 h-4" />
+                          Save All Plans
+                        </>
+                      )}
+                    </span>
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="space-y-6">
@@ -454,6 +531,30 @@ const PricingPlan = () => {
                       </div>
                     ))}
                   </div>
+
+                  {/* Individual Save Button for each plan */}
+                  <div className="mt-6">
+                    <button
+                      onClick={() => handleSavePlan(plan)}
+                      disabled={savingPlan[plan.id]}
+                      className="w-full px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
+                    >
+                      <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                      <span className="relative flex items-center justify-center gap-2">
+                        {savingPlan[plan.id] ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <FiSave className="w-4 h-4" />
+                            Save Plan
+                          </>
+                        )}
+                      </span>
+                    </button>
+                  </div>
                 </div>
               ))}
 
@@ -474,29 +575,6 @@ const PricingPlan = () => {
                   </button>
                 </div>
               )}
-            </div>
-
-            <div className="mt-8">
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="w-full px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
-              >
-                <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-                <span className="relative flex items-center justify-center gap-2">
-                  {isSaving ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <FiSave className="w-4 h-4" />
-                      Save Pricing Plans
-                    </>
-                  )}
-                </span>
-              </button>
             </div>
           </div>
 
