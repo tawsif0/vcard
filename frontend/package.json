@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.12",
+    "@tinymce/tinymce-react": "^6.3.0",
     "framer-motion": "^12.23.12",
     "lucide-react": "^0.544.0",
     "qrcode.react": "^4.2.0",
