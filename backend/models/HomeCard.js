@@ -52,6 +52,6 @@ const homeCardSchema = new mongoose.Schema(
 );
 
 // Index for faster queries
-homeCardSchema.index({ userId: 1 });
+// homeCardSchema.index({ userId: 1 });
 
 module.exports = mongoose.model("HomeCard", homeCardSchema);

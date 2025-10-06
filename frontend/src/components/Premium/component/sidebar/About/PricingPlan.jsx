@@ -7,9 +7,11 @@ import {
   FiTrash2,
   FiCheck,
   FiX,
+  FiChevronDown,
+  FiChevronUp,
 } from "react-icons/fi";
 import { toast } from "react-hot-toast";
-import AuthContext from "../../../../../context/AuthContext"; // Adjust import path as needed
+import AuthContext from "../../../../../context/AuthContext"; // Adjust path as needed
 
 const PricingPlan = () => {
   const { checkAuth } = useContext(AuthContext);
@@ -18,71 +20,60 @@ const PricingPlan = () => {
   const [savingPlan, setSavingPlan] = useState({});
   const hasFetchedRef = useRef(false);
 
+  // Add expandedPlanId state for dropdown logic
+  const [expandedPlanId, setExpandedPlanId] = useState(null);
+
   // Loading timeout hook
   const useLoadingTimeout = (loadingState, timeout = 10000) => {
     const [timedOut, setTimedOut] = useState(false);
-
     useEffect(() => {
       if (loadingState) {
         const timer = setTimeout(() => {
           setTimedOut(true);
         }, timeout);
-
         return () => clearTimeout(timer);
       } else {
         setTimedOut(false);
       }
     }, [loadingState, timeout]);
-
     return timedOut;
   };
-
   const loadingTimedOut = useLoadingTimeout(isLoading, 10000);
 
   // Fetch pricing data from backend
   useEffect(() => {
     const fetchPricingData = async () => {
       const token = localStorage.getItem("token");
-
       if (!token) {
         setIsLoading(false);
         toast.error("Please log in to access this page");
         return;
       }
-
-      // Prevent multiple fetches
       if (hasFetchedRef.current) {
         return;
       }
-
       try {
         setIsLoading(true);
         hasFetchedRef.current = true;
-
         const response = await fetch("http://localhost:5000/api/about", {
           headers: {
             "x-auth-token": token,
           },
         });
-
         if (response.status === 401) {
-          // Token expired or invalid
           localStorage.removeItem("token");
           localStorage.removeItem("user");
           toast.error("Session expired. Please log in again.");
           return;
         }
-
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(
             errorData.message || `HTTP error! status: ${response.status}`
           );
         }
-
         const data = await response.json();
         if (data.success) {
-          // Handle both possible data structures
           const pricingData = data.data.pricing || [];
           setPricingPlans(pricingData);
         }
@@ -98,10 +89,7 @@ const PricingPlan = () => {
         setIsLoading(false);
       }
     };
-
     fetchPricingData();
-
-    // Cleanup function to reset fetch flag when component unmounts
     return () => {
       hasFetchedRef.current = false;
     };
@@ -147,10 +135,12 @@ const PricingPlan = () => {
       ],
     };
     setPricingPlans((prev) => [newPlan, ...prev]);
+    setExpandedPlanId(newId); // Auto-expand when new is added
   };
 
   const removePlan = (id) => {
     setPricingPlans((prev) => prev.filter((plan) => plan.id !== id));
+    if (expandedPlanId === id) setExpandedPlanId(null);
   };
 
   const addFeature = (planId) => {
@@ -209,42 +199,33 @@ const PricingPlan = () => {
   };
 
   const handleSavePlan = async (plan) => {
-    // Check authentication before saving
     const isAuthenticated = await checkAuth();
     if (!isAuthenticated) {
       toast.error("Please log in to save changes");
       return;
     }
-
     setSavingPlan((prev) => ({ ...prev, [plan.id]: true }));
-
     try {
       const token = localStorage.getItem("token");
-
-      // Create updated plans array - either update existing or add new
       const updatedPlans = pricingPlans.map((p) =>
         p.id === plan.id ? plan : p
       );
-
       const response = await fetch("http://localhost:5000/api/about/pricing", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           "x-auth-token": token,
         },
-        body: JSON.stringify(updatedPlans), // Send ALL plans, not just the current one
+        body: JSON.stringify(updatedPlans),
       });
-
       if (response.status === 401) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         toast.error("Session expired. Please log in again.");
         return;
       }
-
       if (response.ok) {
         toast.success("Pricing plan saved successfully!");
-        // Update local state with the saved data
         setPricingPlans(updatedPlans);
       } else {
         const errorData = await response.json();
@@ -257,22 +238,17 @@ const PricingPlan = () => {
     }
   };
 
-  // New function to save all plans at once
   const handleSaveAllPlans = async () => {
-    // Check authentication before saving
     const isAuthenticated = await checkAuth();
     if (!isAuthenticated) {
       toast.error("Please log in to save changes");
       return;
     }
-
     if (pricingPlans.length === 0) {
       toast.error("No pricing plans to save");
       return;
     }
-
     setSavingPlan((prev) => ({ ...prev, all: true }));
-
     try {
       const token = localStorage.getItem("token");
       const response = await fetch("http://localhost:5000/api/about/pricing", {
@@ -283,14 +259,12 @@ const PricingPlan = () => {
         },
         body: JSON.stringify(pricingPlans),
       });
-
       if (response.status === 401) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         toast.error("Session expired. Please log in again.");
         return;
       }
-
       if (response.ok) {
         toast.success("All pricing plans saved successfully!");
       } else {
@@ -325,16 +299,17 @@ const PricingPlan = () => {
   }
 
   return (
-    <div className="w-full py-6 px-4 relative overflow-visible">
-      <div className="mx-auto max-w-7xl relative z-10">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">
+    <div className="w-full min-h-screen py-4 px-2 sm:px-4 lg:px-8 relative overflow-visible">
+      <div className="w-full mx-auto relative z-10">
+        <div className="text-center mb-5 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-3">
             Pricing
           </h1>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          <div className="bg-gray-900/20 backdrop-blur-md rounded-2xl shadow-xl p-6 lg:col-span-2 border border-gray-700/30">
-            <div className="flex justify-between items-center mb-6">
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 items-start w-full">
+          <div className="w-full bg-gray-900/20 backdrop-blur-md rounded-2xl shadow-xl p-2 sm:p-4 md:p-6 lg:col-span-2 border border-gray-700/30">
+            <div className="flex justify-between items-center mb-6 px-2 sm:px-0">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <FiEdit className="w-5 h-5" />
                 Edit Pricing Plans
@@ -375,189 +350,205 @@ const PricingPlan = () => {
               </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {pricingPlans.map((plan) => (
                 <div
                   key={plan.id}
-                  className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50"
+                  className="w-full bg-gray-800/50 rounded-xl border border-gray-700/50"
                 >
-                  <div className="flex justify-between items-start mb-6">
-                    <h3 className="text-lg font-semibold text-white">
+                  <div
+                    className="flex flex-row justify-between items-center px-4 py-3 sm:px-6 sm:py-4 cursor-pointer select-none"
+                    onClick={() =>
+                      setExpandedPlanId(
+                        expandedPlanId === plan.id ? null : plan.id
+                      )
+                    }
+                    title={`Show/Hide Plan #${plan.id}`}
+                  >
+                    <h3 className="text-base sm:text-lg font-semibold text-white flex items-center">
+                      {expandedPlanId === plan.id ? (
+                        <FiChevronUp className="mr-2" />
+                      ) : (
+                        <FiChevronDown className="mr-2" />
+                      )}
                       Plan #{plan.id}
                     </h3>
                     <button
-                      onClick={() => removePlan(plan.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removePlan(plan.id);
+                      }}
                       className="p-2 text-red-400 hover:text-red-300 transition"
                       title="Remove Plan"
                     >
                       <FiTrash2 className="w-4 h-4" />
                     </button>
                   </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="form-group">
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Plan Name
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-3 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl text-white focus:border-gray-500 transition"
-                        value={plan.name}
-                        onChange={(e) =>
-                          handlePlanChange(plan.id, "name", e.target.value)
-                        }
-                        placeholder="Basic Plan"
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Price
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-3 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl text-white focus:border-gray-500 transition"
-                        value={plan.price}
-                        onChange={(e) => {
-                          // Only allow numbers and decimal point
-                          const value = e.target.value;
-                          // Regex to allow numbers and optional decimal point
-                          if (value === "" || /^\d*\.?\d*$/.test(value)) {
-                            handlePlanChange(plan.id, "price", value);
-                          }
-                        }}
-                        onBlur={(e) => {
-                          // Format the price on blur - ensure it's a proper number
-                          const value = e.target.value;
-                          if (value && !isNaN(parseFloat(value))) {
-                            // Remove leading zeros and format to 2 decimal places if needed
-                            const formattedValue = parseFloat(value).toString();
-                            handlePlanChange(plan.id, "price", formattedValue);
-                          } else if (value === "") {
-                            handlePlanChange(plan.id, "price", "");
-                          } else {
-                            // If invalid, clear the field
-                            handlePlanChange(plan.id, "price", "");
-                            toast.error(
-                              "Please enter a valid number for price"
-                            );
-                          }
-                        }}
-                        placeholder="99.99"
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Period
-                      </label>
-                      <select
-                        className="w-full px-4 py-3 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl text-white focus:border-gray-500 transition"
-                        value={plan.period}
-                        onChange={(e) =>
-                          handlePlanChange(plan.id, "period", e.target.value)
-                        }
-                      >
-                        <option value="month">Per Month</option>
-                        <option value="year">Per Year</option>
-                        <option value="one-time">One Time</option>
-                        <option value="hour">Per Hour</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <label className="block text-sm font-medium text-gray-300">
-                        Features
-                      </label>
-                      <button
-                        onClick={() => addFeature(plan.id)}
-                        className="px-3 py-1 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-lg text-sm hover:from-cyan-700 hover:to-teal-700 transition flex items-center gap-1 group relative overflow-hidden"
-                      >
-                        <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-                        <span className="relative flex items-center gap-1">
-                          <FiPlus className="w-3 h-3" />
-                          Add Feature
-                        </span>
-                      </button>
-                    </div>
-
-                    {plan.features.map((feature) => (
-                      <div
-                        key={feature.id}
-                        className="flex items-center gap-3 p-3 bg-gray-800 rounded-lg border border-gray-700"
-                      >
+                  {expandedPlanId === plan.id && (
+                    <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-1 sm:pt-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-3 gap-2 sm:gap-4 mb-5">
+                        <div className="form-group">
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Plan Name
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full px-4 py-3 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl text-white focus:border-gray-500 transition"
+                            value={plan.name}
+                            onChange={(e) =>
+                              handlePlanChange(plan.id, "name", e.target.value)
+                            }
+                            placeholder="Basic Plan"
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Price
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full px-4 py-3 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl text-white focus:border-gray-500 transition"
+                            value={plan.price}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                                handlePlanChange(plan.id, "price", value);
+                              }
+                            }}
+                            onBlur={(e) => {
+                              const value = e.target.value;
+                              if (value && !isNaN(parseFloat(value))) {
+                                const formattedValue =
+                                  parseFloat(value).toString();
+                                handlePlanChange(
+                                  plan.id,
+                                  "price",
+                                  formattedValue
+                                );
+                              } else if (value === "") {
+                                handlePlanChange(plan.id, "price", "");
+                              } else {
+                                handlePlanChange(plan.id, "price", "");
+                                toast.error(
+                                  "Please enter a valid number for price"
+                                );
+                              }
+                            }}
+                            placeholder="99.99"
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Period
+                          </label>
+                          <select
+                            className="w-full px-4 py-3 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl text-white focus:border-gray-500 transition"
+                            value={plan.period}
+                            onChange={(e) =>
+                              handlePlanChange(
+                                plan.id,
+                                "period",
+                                e.target.value
+                              )
+                            }
+                          >
+                            <option value="month">Per Month</option>
+                            <option value="year">Per Year</option>
+                            <option value="one-time">One Time</option>
+                            <option value="hour">Per Hour</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <label className="block text-sm font-medium text-gray-300">
+                            Features
+                          </label>
+                          <button
+                            onClick={() => addFeature(plan.id)}
+                            className="px-3 py-1 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-lg text-sm hover:from-cyan-700 hover:to-teal-700 transition flex items-center gap-1 group relative overflow-hidden"
+                          >
+                            <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                            <span className="relative flex items-center gap-1">
+                              <FiPlus className="w-3 h-3" />
+                              Add Feature
+                            </span>
+                          </button>
+                        </div>
+                        {plan.features.map((feature) => (
+                          <div
+                            key={feature.id}
+                            className="flex items-center gap-3 p-3 bg-gray-800 rounded-lg border border-gray-700"
+                          >
+                            <button
+                              onClick={() =>
+                                toggleFeatureIncluded(plan.id, feature.id)
+                              }
+                              className={`p-1 rounded ${
+                                feature.included
+                                  ? "bg-green-600 text-white"
+                                  : "bg-red-600 text-white"
+                              }`}
+                              title={
+                                feature.included ? "Included" : "Not Included"
+                              }
+                            >
+                              {feature.included ? (
+                                <FiCheck className="w-3 h-3" />
+                              ) : (
+                                <FiX className="w-3 h-3" />
+                              )}
+                            </button>
+                            <input
+                              type="text"
+                              className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-gray-500 transition"
+                              value={feature.text}
+                              onChange={(e) =>
+                                handleFeatureChange(
+                                  plan.id,
+                                  feature.id,
+                                  "text",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Feature description"
+                            />
+                            <button
+                              onClick={() => removeFeature(plan.id, feature.id)}
+                              className="p-1 text-red-400 hover:text-red-300 transition"
+                              title="Remove Feature"
+                            >
+                              <FiTrash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-6">
                         <button
-                          onClick={() =>
-                            toggleFeatureIncluded(plan.id, feature.id)
-                          }
-                          className={`p-1 rounded ${
-                            feature.included
-                              ? "bg-green-600 text-white"
-                              : "bg-red-600 text-white"
-                          }`}
-                          title={feature.included ? "Included" : "Not Included"}
+                          onClick={() => handleSavePlan(plan)}
+                          disabled={savingPlan[plan.id]}
+                          className="w-full px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
                         >
-                          {feature.included ? (
-                            <FiCheck className="w-3 h-3" />
-                          ) : (
-                            <FiX className="w-3 h-3" />
-                          )}
-                        </button>
-
-                        <input
-                          type="text"
-                          className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-gray-500 transition"
-                          value={feature.text}
-                          onChange={(e) =>
-                            handleFeatureChange(
-                              plan.id,
-                              feature.id,
-                              "text",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Feature description"
-                        />
-
-                        <button
-                          onClick={() => removeFeature(plan.id, feature.id)}
-                          className="p-1 text-red-400 hover:text-red-300 transition"
-                          title="Remove Feature"
-                        >
-                          <FiTrash2 className="w-3 h-3" />
+                          <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                          <span className="relative flex items-center justify-center gap-2">
+                            {savingPlan[plan.id] ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <FiSave className="w-4 h-4" />
+                                Save Plan
+                              </>
+                            )}
+                          </span>
                         </button>
                       </div>
-                    ))}
-                  </div>
-
-                  {/* Individual Save Button for each plan */}
-                  <div className="mt-6">
-                    <button
-                      onClick={() => handleSavePlan(plan)}
-                      disabled={savingPlan[plan.id]}
-                      className="w-full px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
-                    >
-                      <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-                      <span className="relative flex items-center justify-center gap-2">
-                        {savingPlan[plan.id] ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <FiSave className="w-4 h-4" />
-                            Save Plan
-                          </>
-                        )}
-                      </span>
-                    </button>
-                  </div>
+                    </div>
+                  )}
                 </div>
               ))}
-
               {pricingPlans.length === 0 && (
                 <div className="text-center py-12 border-2 border-dashed border-gray-700 rounded-xl">
                   <p className="text-gray-400 mb-4">
@@ -578,20 +569,18 @@ const PricingPlan = () => {
             </div>
           </div>
 
-          {/* Updated Live Preview Section with Services-like styling */}
-          <div className="bg-gray-900/20 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-gray-700/30 sticky top-8 self-start overflow-y-auto">
+          {/* Live Preview Section */}
+          <div className="w-full bg-gray-900/20 backdrop-blur-md rounded-2xl shadow-xl p-2 sm:p-4 md:p-6 border border-gray-700/30 sticky top-8 self-start overflow-y-auto">
             <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
               <FiEye className="w-5 h-5" />
               Live Preview
             </h2>
 
             <div className="bg-gradient-to-br from-gray-800 via-gray-900 to-gray-950 rounded-2xl shadow-2xl overflow-hidden transform hover:scale-[1.01] transition-all duration-500 border border-gray-600/30 hover:border-cyan-500/30">
-              {/* Sophisticated Header */}
               <div className="relative bg-gradient-to-r from-slate-800 via-gray-800 to-slate-900 p-6 overflow-hidden border-b border-gray-700/50">
                 <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-purple-500/5"></div>
                 <div className="absolute top-4 right-4 w-20 h-20 bg-cyan-500/10 rounded-full blur-xl"></div>
                 <div className="absolute bottom-4 left-4 w-16 h-16 bg-purple-500/10 rounded-full blur-lg"></div>
-
                 <div className="relative z-10">
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg border border-cyan-400/30">
@@ -617,7 +606,6 @@ const PricingPlan = () => {
                         key={plan.id}
                         className="group relative p-6 bg-gradient-to-r from-gray-800/50 to-gray-900/50 rounded-xl border border-gray-700/50 hover:border-cyan-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/5"
                       >
-                        {/* Plan Header */}
                         <div className="text-center mb-4">
                           <h3 className="text-xl font-bold text-white mb-2">
                             {plan.name || "Plan Name"}
@@ -638,8 +626,6 @@ const PricingPlan = () => {
                             </span>
                           </div>
                         </div>
-
-                        {/* Features List */}
                         <div className="space-y-3 mb-6">
                           {plan.features.map((feature) => (
                             <div
@@ -661,8 +647,6 @@ const PricingPlan = () => {
                             </div>
                           ))}
                         </div>
-
-                        {/* Get Started Button */}
                         <button className="w-full group relative bg-gradient-to-r from-cyan-600 to-teal-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30">
                           <span className="relative z-10 flex items-center justify-center gap-2">
                             Get Started

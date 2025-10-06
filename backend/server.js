@@ -34,6 +34,7 @@ app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/blog-categories", blogCategoryRoutes);
 app.use("/api/password-reset", passwordResetRouter);
 app.use("/api/homeCard", homeCardRoutes);
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));

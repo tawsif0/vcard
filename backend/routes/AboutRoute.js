@@ -8,21 +8,33 @@ const { auth } = require("../middlewares/auth");
 
 // Ensure upload directory exists
 const uploadsDir = path.join(__dirname, "../uploads/services");
+
+// Ensure the upload directory exists (with recursive creation)
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Configure multer for file uploads
+// Multer storage config to use original file name (add (n) if duplicate)
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
+    // Ensure the directory exists at runtime as well
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
     cb(null, uploadsDir);
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(
-      null,
-      "service-" + uniqueSuffix + path.extname(file.originalname).toLowerCase()
-    );
+    const originalName = path.parse(file.originalname).name;
+    const ext = path.extname(file.originalname).toLowerCase();
+    let uniqueSuffix = originalName;
+    let count = 1;
+
+    while (fs.existsSync(path.join(uploadsDir, uniqueSuffix + ext))) {
+      uniqueSuffix = `${originalName}(${count})`;
+      count++;
+    }
+
+    cb(null, uniqueSuffix + ext);
   },
 });
 

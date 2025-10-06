@@ -19,9 +19,8 @@ const storage = multer.diskStorage({
   filename: function (req, file, cb) {
     const originalName = path.parse(file.originalname).name; // Get original file name without extension
     const ext = path.extname(file.originalname); // Get file extension
-    let uniqueSuffix = originalName; // Start with original name
+    let uniqueSuffix = originalName;
 
-    // Check if file with the same name exists and generate a new name if it does
     let count = 1;
     while (
       fs.existsSync(

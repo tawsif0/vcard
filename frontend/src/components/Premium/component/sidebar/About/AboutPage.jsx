@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FiUser,
   FiMail,
@@ -13,10 +13,8 @@ import {
   FiX,
   FiGlobe,
 } from "react-icons/fi";
-import AuthContext from "../../../../../context/AuthContext";
 
 const AboutPage = () => {
-  const { checkAuth } = useContext(AuthContext);
   const [aboutData, setAboutData] = useState({
     personal: {},
     services: [],
@@ -351,7 +349,7 @@ const AboutPage = () => {
 
             <div className="flex justify-center">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-7xl mx-auto justify-items-center">
-                {aboutData.services.map((service, index) => (
+                {aboutData.services.map((service) => (
                   <div
                     key={service.id}
                     className="w-full max-w-xs bg-gray-800/50 backdrop-blur-md rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 border border-gray-700/30 hover:border-cyan-500/30 group hover:-translate-y-3 hover:shadow-cyan-500/20"

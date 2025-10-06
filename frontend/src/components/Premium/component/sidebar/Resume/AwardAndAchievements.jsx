@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
+/* eslint-disable no-unused-vars */
+import React, { useState, useEffect } from "react";
 import {
   FiEdit,
   FiEye,
@@ -104,14 +105,17 @@ const AwardAndAchievements = () => {
       }
 
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:5000/api/resume/awards/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "x-auth-token": token,
-        },
-        body: JSON.stringify(updateData),
-      });
+      const response = await fetch(
+        `http://localhost:5000/api/resume/awards/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "x-auth-token": token,
+          },
+          body: JSON.stringify(updateData),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -134,12 +138,15 @@ const AwardAndAchievements = () => {
     // Allow deleting all awards - no minimum requirement
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:5000/api/resume/awards/${id}`, {
-        method: "DELETE",
-        headers: {
-          "x-auth-token": token,
-        },
-      });
+      const response = await fetch(
+        `http://localhost:5000/api/resume/awards/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            "x-auth-token": token,
+          },
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -174,8 +181,8 @@ const AwardAndAchievements = () => {
       );
 
       const results = await Promise.all(savePromises);
-      const allSaved = results.every(result => result === true);
-      
+      const allSaved = results.every((result) => result === true);
+
       if (allSaved) {
         toast.success("Awards saved successfully!");
       } else {
@@ -199,13 +206,16 @@ const AwardAndAchievements = () => {
       const formData = new FormData();
       formData.append("logo", file);
 
-      const response = await fetch("http://localhost:5000/api/resume/upload-logo", {
-        method: "POST",
-        headers: {
-          "x-auth-token": token,
-        },
-        body: formData,
-      });
+      const response = await fetch(
+        "http://localhost:5000/api/resume/upload-logo",
+        {
+          method: "POST",
+          headers: {
+            "x-auth-token": token,
+          },
+          body: formData,
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -236,7 +246,7 @@ const AwardAndAchievements = () => {
 
   // Manual save for description field
   const handleDescriptionBlur = async (id) => {
-    const award = awards.find(award => award._id === id);
+    const award = awards.find((award) => award._id === id);
     if (award && award.desc) {
       await updateAward(id, { desc: award.desc });
     }
@@ -299,11 +309,7 @@ const AwardAndAchievements = () => {
                         className="w-full px-4 py-3 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl text-white focus:border-gray-500 transition placeholder-gray-500"
                         value={award.title || ""}
                         onChange={(e) =>
-                          handleInputChange(
-                            award._id,
-                            "title",
-                            e.target.value
-                          )
+                          handleInputChange(award._id, "title", e.target.value)
                         }
                         placeholder="e.g., Best Developer Award"
                       />
@@ -318,11 +324,7 @@ const AwardAndAchievements = () => {
                         className="w-full px-4 py-3 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl text-white focus:border-gray-500 transition placeholder-gray-500"
                         value={award.year || ""}
                         onChange={(e) =>
-                          handleInputChange(
-                            award._id,
-                            "year",
-                            e.target.value
-                          )
+                          handleInputChange(award._id, "year", e.target.value)
                         }
                         placeholder="e.g., 2023"
                       />
@@ -373,7 +375,7 @@ const AwardAndAchievements = () => {
                     <label className="block text-sm font-medium text-gray-300 mb-2">
                       Award Logo
                     </label>
-                    
+
                     {/* Logo Preview */}
                     {award.logo ? (
                       <div className="mb-3">
@@ -388,12 +390,18 @@ const AwardAndAchievements = () => {
                             }}
                           />
                           <div className="flex-1">
-                            <p className="text-green-400 text-sm font-medium mb-1">✓ Logo uploaded successfully</p>
-                            <p className="text-gray-400 text-xs">Image will appear in preview</p>
+                            <p className="text-green-400 text-sm font-medium mb-1">
+                              ✓ Logo uploaded successfully
+                            </p>
+                            <p className="text-gray-400 text-xs">
+                              Image will appear in preview
+                            </p>
                           </div>
                           <button
                             type="button"
-                            onClick={() => handleInputChange(award._id, "logo", "")}
+                            onClick={() =>
+                              handleInputChange(award._id, "logo", "")
+                            }
                             className="p-2 text-red-400 hover:text-red-300 transition"
                             title="Remove logo"
                           >
@@ -402,7 +410,7 @@ const AwardAndAchievements = () => {
                         </div>
                       </div>
                     ) : null}
-                    
+
                     {/* Upload Section - Only show if no logo exists */}
                     {!award.logo && (
                       <div className="flex gap-2">
@@ -438,7 +446,7 @@ const AwardAndAchievements = () => {
                         </div>
                       </div>
                     )}
-                    
+
                     {/* Upload instructions */}
                     {!award.logo && (
                       <p className="mt-2 text-xs text-gray-400">
@@ -457,7 +465,9 @@ const AwardAndAchievements = () => {
                       <Editor
                         apiKey="h2ar80nttlx4hli43ugzp4wvv9ej7q3feifsu8mqssyfga6s" // TINYMCE_ADDED: Your API key
                         value={award.desc || ""}
-                        onEditorChange={(content) => handleEditorChange(award._id, content)}
+                        onEditorChange={(content) =>
+                          handleEditorChange(award._id, content)
+                        }
                         onBlur={() => handleDescriptionBlur(award._id)}
                         init={{
                           height: 250,
@@ -580,7 +590,9 @@ const AwardAndAchievements = () => {
                   </div>
                   <div className="flex items-center gap-2 text-cyan-100">
                     <FiAward className="w-5 h-5" />
-                    <span className="text-sm">{awards.length} Award{awards.length !== 1 ? 's' : ''}</span>
+                    <span className="text-sm">
+                      {awards.length} Award{awards.length !== 1 ? "s" : ""}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -588,10 +600,7 @@ const AwardAndAchievements = () => {
               {/* Preview Content */}
               <div className="p-6 space-y-6">
                 {awards.map((award, index) => (
-                  <div
-                    key={award._id || index}
-                    className="group relative"
-                  >
+                  <div key={award._id || index} className="group relative">
                     <div className="relative flex items-start space-x-4 p-4 rounded-xl bg-gray-800/40 hover:bg-gray-700/50 transition-all duration-300 border border-cyan-500/20 hover:border-cyan-400/40">
                       {/* Award Logo/Icon */}
                       <div className="relative z-10 flex-shrink-0">
@@ -601,12 +610,16 @@ const AwardAndAchievements = () => {
                             alt={`${award.title} logo`}
                             className="w-12 h-12 rounded-lg object-cover shadow-lg border border-gray-600"
                             onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.nextSibling.style.display = 'flex';
+                              e.target.style.display = "none";
+                              e.target.nextSibling.style.display = "flex";
                             }}
                           />
                         ) : null}
-                        <div className={`w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg ${award.logo ? 'hidden' : 'flex'}`}>
+                        <div
+                          className={`w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg ${
+                            award.logo ? "hidden" : "flex"
+                          }`}
+                        >
                           <FiAward className="w-6 h-6 text-white" />
                         </div>
                       </div>
@@ -619,14 +632,18 @@ const AwardAndAchievements = () => {
                           </h3>
                           <div className="flex items-center gap-2 text-cyan-300 text-sm">
                             <FiCalendar className="w-4 h-4" />
-                            <span className="font-semibold">{award.year || "Year"}</span>
+                            <span className="font-semibold">
+                              {award.year || "Year"}
+                            </span>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-3 mb-3">
                           <div className="flex items-center gap-1 text-blue-300">
                             <FiUsers className="w-4 h-4" />
-                            <span className="font-medium">{award.association || "Association"}</span>
+                            <span className="font-medium">
+                              {award.association || "Association"}
+                            </span>
                           </div>
                           {award.location && (
                             <div className="flex items-center gap-1 text-gray-400">
@@ -648,7 +665,10 @@ const AwardAndAchievements = () => {
                               />
                             </div>
                           ) : (
-                            <p className="text-gray-400 italic">No description provided. Add award details and achievements.</p>
+                            <p className="text-gray-400 italic">
+                              No description provided. Add award details and
+                              achievements.
+                            </p>
                           )}
                         </div>
                       </div>
@@ -659,7 +679,9 @@ const AwardAndAchievements = () => {
                 {awards.length === 0 && (
                   <div className="text-center py-8 text-gray-400">
                     <p>No awards to display</p>
-                    <p className="text-sm">Add some awards to see the preview</p>
+                    <p className="text-sm">
+                      Add some awards to see the preview
+                    </p>
                   </div>
                 )}
               </div>

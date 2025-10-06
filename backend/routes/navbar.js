@@ -6,23 +6,34 @@ const fs = require("fs");
 const Navbar = require("../models/Navbar");
 const { auth } = require("../middlewares/auth");
 
-// Ensure upload directory exists
+// Define uploads directory for navbar
 const uploadsDir = path.join(__dirname, "../uploads/navbar");
+
+// Ensure "uploads/navbar" directory exists
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Configure multer for file uploads
+// Multer storage config: use original filename, auto number if exists
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
+    // Double-check ensure the dir exists at runtime
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
     cb(null, uploadsDir);
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(
-      null,
-      "navbar-" + uniqueSuffix + path.extname(file.originalname).toLowerCase()
-    );
+    const originalName = path.parse(file.originalname).name;
+    const ext = path.extname(file.originalname).toLowerCase();
+    let uniqueName = originalName;
+    let count = 1;
+    // If file exists, append (n)
+    while (fs.existsSync(path.join(uploadsDir, uniqueName + ext))) {
+      uniqueName = `${originalName}(${count})`;
+      count++;
+    }
+    cb(null, uniqueName + ext);
   },
 });
 
