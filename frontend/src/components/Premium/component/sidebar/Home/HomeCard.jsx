@@ -1,5 +1,7 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import * as THREE from "three";
 import {
   FiUser,
   FiMapPin,
@@ -18,24 +20,28 @@ import {
   FiImage,
   FiPlus,
   FiTrash2,
+  FiLoader,
 } from "react-icons/fi";
+import { FaTiktok } from "react-icons/fa";
 import { MdImageNotSupported } from "react-icons/md";
 import { RiSparklingFill } from "react-icons/ri";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
-
+import axios from "axios";
 const HomeCard = ({ user }) => {
   const [profile, setProfile] = useState({
     fullName: "",
     designation: "",
     city: "",
     profilePicture: null,
+    profilePictureFile: null,
     socialMedias: [],
   });
 
   const [selectedTemplate, setSelectedTemplate] = useState("influencer");
   const [savedProfile, setSavedProfile] = useState({});
   const [showImage, setShowImage] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const socialMediaOptions = [
     {
@@ -87,6 +93,14 @@ const HomeCard = ({ user }) => {
       borderColor: "border-gray-400/30",
     },
     {
+      value: "tiktok",
+      label: "TikTok",
+      icon: <FaTiktok />,
+      color: "text-white",
+      bgColor: "bg-black/10",
+      borderColor: "border-white/20",
+    },
+    {
       value: "custom",
       label: "Custom URL",
       icon: <FiGlobe />,
@@ -96,15 +110,59 @@ const HomeCard = ({ user }) => {
     },
   ];
 
+  const API_BASE_URL =
+    import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+  // Load home card data from API
   useEffect(() => {
-    const saved = localStorage.getItem("profileData");
-    if (saved) {
-      const parsedData = JSON.parse(saved);
-      setSavedProfile(parsedData);
-      setProfile(parsedData);
-      setShowImage(!!parsedData.profilePicture);
-    }
+    loadHomeCard();
   }, []);
+
+  const loadHomeCard = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await axios.get(`${API_BASE_URL}/homeCard/my-homecard`, {
+        headers: {
+          "x-auth-token": token,
+        },
+      });
+
+      if (response.data.homeCard) {
+        const homeCard = response.data.homeCard;
+
+        // Set template
+        setSelectedTemplate(homeCard.template || "influencer");
+
+        // Set show image preference
+        setShowImage(
+          homeCard.showImage !== undefined ? homeCard.showImage : true
+        );
+
+        // Set profile data
+        if (homeCard.profileData) {
+          const profileData = {
+            fullName: homeCard.profileData.fullName || "",
+            designation: homeCard.profileData.designation || "",
+            city: homeCard.profileData.city || "",
+            // Create full URL for saved profile picture
+            profilePicture: homeCard.profileData.profilePicture
+              ? `${API_BASE_URL.replace("/api", "")}/${
+                  homeCard.profileData.profilePicture
+                }`
+              : null,
+            socialMedias: homeCard.profileData.socialMedias || [],
+          };
+          setProfile(profileData);
+          setSavedProfile(profileData);
+        }
+      }
+    } catch (error) {
+      if (error.response?.status !== 404) {
+        toast.error("Failed to load home card");
+      }
+    }
+  };
 
   const handleChange = (e) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
@@ -119,14 +177,36 @@ const HomeCard = ({ user }) => {
         toast.error("Image size should be less than 5MB");
         return;
       }
-      setProfile({ ...profile, profilePicture: file });
+      setProfile({
+        ...profile,
+        profilePicture: URL.createObjectURL(file), // Create object URL for preview
+        profilePictureFile: file,
+      });
     }
   };
 
   const removeProfilePicture = () => {
-    setProfile({ ...profile, profilePicture: null });
+    // Revoke the object URL to avoid memory leaks
+    if (profile.profilePicture && profile.profilePicture.startsWith("blob:")) {
+      URL.revokeObjectURL(profile.profilePicture);
+    }
+    setProfile({
+      ...profile,
+      profilePicture: null,
+      profilePictureFile: null,
+    });
   };
-
+  useEffect(() => {
+    return () => {
+      // Clean up object URLs when component unmounts
+      if (
+        profile.profilePicture &&
+        profile.profilePicture.startsWith("blob:")
+      ) {
+        URL.revokeObjectURL(profile.profilePicture);
+      }
+    };
+  }, []);
   const handleSocialMediaChange = (index, field, value) => {
     const updatedSocialMedias = [...profile.socialMedias];
     updatedSocialMedias[index][field] = value;
@@ -146,208 +226,315 @@ const HomeCard = ({ user }) => {
     setProfile({ ...profile, socialMedias: updatedSocialMedias });
   };
 
-  const handleSave = () => {
-    localStorage.setItem("profileData", JSON.stringify(profile));
-    setSavedProfile(profile);
-    toast.success("Profile saved successfully!");
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const token = localStorage.getItem("token");
+
+      const formData = new FormData();
+      formData.append("template", selectedTemplate);
+      formData.append("fullName", profile.fullName);
+      formData.append("designation", profile.designation);
+      formData.append("city", profile.city);
+      formData.append("socialMedias", JSON.stringify(profile.socialMedias));
+      formData.append("showImage", showImage.toString());
+
+      // Add profile picture file if selected
+      if (profile.profilePictureFile) {
+        formData.append("profilePicture", profile.profilePictureFile);
+      }
+
+      // If profile picture is removed
+      if (!profile.profilePicture && savedProfile.profilePicture) {
+        formData.append("removeProfilePicture", "true");
+      }
+
+      const response = await axios.put(
+        `${API_BASE_URL}/homeCard/my-homecard`,
+        formData,
+        {
+          headers: {
+            "x-auth-token": token,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      setSavedProfile(profile);
+      toast.success("Home card saved successfully!");
+    } catch (error) {
+      console.error("Error saving home card:", error);
+      toast.error("Failed to save home card");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const toggleImage = () => {
     setShowImage(!showImage);
-    if (showImage) {
-      setProfile({ ...profile, profilePicture: null });
+    if (showImage && profile.profilePicture) {
+      setProfile({
+        ...profile,
+        profilePicture: null,
+        profilePictureFile: null,
+      });
     }
   };
-
   // TEMPLATE COMPONENTS - ALL RECTANGULAR
+  const TemplateInfluencer = () => {
+    const canvasRef = useRef(null);
 
-  const TemplateInfluencer = () => (
-    <div className="bg-gradient-to-br from-gray-950 via-purple-950 to-black rounded-xl p-8 text-white shadow-2xl w-full max-w-sm mx-auto relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-indigo-500/5"></div>
-      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(168,85,247,0.1),transparent_50%)]"></div>
+    useEffect(() => {
+      if (!canvasRef.current) return;
 
-      <div className="absolute top-10 right-10 w-2 h-2 bg-purple-400 rounded-full opacity-60 animate-ping"></div>
-      <div className="absolute top-20 left-12 w-1.5 h-1.5 bg-indigo-400 rounded-full opacity-40 animate-pulse"></div>
-      <div className="absolute bottom-20 right-16 w-1 h-1 bg-purple-300 rounded-full opacity-50 animate-ping"></div>
+      // Three.js Scene Setup
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, 300 / 180, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({
+        canvas: canvasRef.current,
+        alpha: true,
+        antialias: true,
+      });
 
-      <div className="relative z-10">
-        {showImage && (
-          <div className="flex flex-col items-center mb-6">
-            <div className="relative">
-              <div className="absolute -inset-2 bg-gradient-to-r from-purple-600/40 via-indigo-600/40 to-purple-600/40 rounded-full blur-xl"></div>
+      renderer.setSize(300, 180);
+      renderer.setPixelRatio(window.devicePixelRatio);
 
-              <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-purple-500 via-indigo-500 to-purple-600 p-[2px]">
-                <div className="w-full h-full rounded-full overflow-hidden bg-black">
+      // Simple particles background
+      const particlesGeometry = new THREE.BufferGeometry();
+      const particlesCount = 50;
+      const posArray = new Float32Array(particlesCount * 3);
+
+      for (let i = 0; i < particlesCount * 3; i++) {
+        posArray[i] = (Math.random() - 0.5) * 5;
+      }
+
+      particlesGeometry.setAttribute(
+        "position",
+        new THREE.BufferAttribute(posArray, 3)
+      );
+
+      const particlesMaterial = new THREE.PointsMaterial({
+        size: 0.02,
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.6,
+      });
+
+      const particlesMesh = new THREE.Points(
+        particlesGeometry,
+        particlesMaterial
+      );
+      scene.add(particlesMesh);
+
+      camera.position.z = 3;
+
+      // Animation
+      const animate = () => {
+        requestAnimationFrame(animate);
+        particlesMesh.rotation.y += 0.005;
+        renderer.render(scene, camera);
+      };
+
+      animate();
+
+      return () => {
+        renderer.dispose();
+      };
+    }, []);
+
+    return (
+      <div className="w-[350px] h-[230px] rounded-xl text-white shadow-2xl mx-auto relative overflow-hidden border border-purple-500/30 bg-black">
+        {/* Three.js Background */}
+        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/60 via-blue-900/40 to-pink-900/50"></div>
+
+        {/* Content - Properly Centered */}
+        <div className="relative z-10 h-full flex flex-col justify-center p-4">
+          <div className="flex items-center gap-2">
+            {/* Left - Profile image */}
+            <div className="flex-shrink-0">
+              <div className="relative">
+                <div className="w-16 h-16 rounded-full border-2 border-gray-400/60 overflow-hidden bg-gradient-to-br from-purple-500 to-blue-500 shadow-lg">
                   {profile.profilePicture ? (
                     <img
-                      src={URL.createObjectURL(profile.profilePicture)}
+                      src={
+                        profile.profilePicture ||
+                        `http://localhost:5000/${savedProfile.profilePicture}`
+                      }
                       alt="Profile"
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-700 to-indigo-700">
-                      <FiUser className="w-10 h-10 text-white" />
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-700 via-pink-600 to-cyan-600">
+                      <FiUser className="w-5 h-5 text-white" />
                     </div>
                   )}
                 </div>
+
+                {/* Floating social icons */}
+                {profile.socialMedias.slice(0, 4).map(
+                  (social, index) =>
+                    social.platform &&
+                    social.url && (
+                      <div
+                        key={index}
+                        className={`absolute w-4 h-4 bg-white/95 rounded-full flex items-center justify-center shadow-md border border-white/40 ${
+                          index === 0
+                            ? "-top-1 -right-1"
+                            : index === 1
+                            ? "-bottom-1 -left-1"
+                            : index === 2
+                            ? "top-0 -left-2"
+                            : "-bottom-1 right-1"
+                        }`}
+                      >
+                        <a
+                          href={social.url}
+                          className="flex items-center justify-center w-full h-full text-gray-800 text-[6px]"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {
+                            socialMediaOptions.find(
+                              (opt) => opt.value === social.platform
+                            )?.icon
+                          }
+                        </a>
+                      </div>
+                    )
+                )}
+              </div>
+            </div>
+
+            {/* Right - Text content */}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium mb-1 opacity-90">
+                Hey, my name is
+              </p>
+
+              <div className="mb-2">
+                <h1 className="text-sm font-bold leading-tight truncate">
+                  {profile.fullName ? profile.fullName : "Johnson"}
+                </h1>
               </div>
 
-              <div className="absolute -bottom-3 -right-3 w-10 h-10 bg-black rounded-lg border-2 border-purple-500 flex items-center justify-center shadow-lg backdrop-blur-sm">
-                <div className="grid grid-cols-2 gap-0.5 p-1">
-                  <div className="w-1.5 h-1.5 bg-purple-500 rounded-sm"></div>
-                  <div className="w-1.5 h-1.5 bg-purple-500 rounded-sm"></div>
-                  <div className="w-1.5 h-1.5 bg-transparent"></div>
-                  <div className="w-1.5 h-1.5 bg-purple-500 rounded-sm"></div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] text-gray-300 whitespace-nowrap">
+                    Known for
+                  </span>
+                  <span className="text-[11px] font-bold text-orange-400 truncate flex-1">
+                    {profile.designation || "Influencing & Content Creation"}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] text-gray-300 whitespace-nowrap">
+                    Based in
+                  </span>
+                  <span className="text-[11px] font-semibold text-purple-300 truncate flex-1">
+                    {profile.city || "New York"}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
-        )}
-
-        <h1 className="text-2xl font-bold text-center mb-2 tracking-tight">
-          <span className="bg-gradient-to-r from-purple-200 via-white to-purple-200 bg-clip-text text-transparent">
-            {profile.fullName || "YOUR NAME"}
-          </span>
-        </h1>
-
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <div className="h-px w-8 bg-gradient-to-r from-transparent to-purple-500"></div>
-          <p className="text-sm font-semibold text-purple-400 tracking-wide uppercase">
-            {profile.designation || "Creator"}
-          </p>
-          <div className="h-px w-8 bg-gradient-to-l from-transparent to-purple-500"></div>
         </div>
 
-        <div className="flex items-center justify-center gap-2 text-gray-400 mb-6 text-xs">
-          <div className="w-1 h-1 bg-purple-500 rounded-full"></div>
-          <span>{profile.city || "Global"}</span>
-          <div className="w-1 h-1 bg-purple-500 rounded-full"></div>
-        </div>
+        {/* Corner accents */}
+        <div className="absolute top-3 right-3 w-2 h-2 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full opacity-70 animate-ping"></div>
+        <div className="absolute bottom-3 left-3 w-1.5 h-1.5 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full opacity-60 animate-pulse"></div>
+        <div className="absolute top-3 left-3 w-1 h-1 bg-pink-400 rounded-full opacity-50"></div>
+        <div className="absolute bottom-3 right-3 w-1 h-1 bg-purple-400 rounded-full opacity-50"></div>
+      </div>
+    );
+  };
 
-        <div className="flex items-center justify-center mb-6">
-          <div className="flex gap-1">
-            <div className="w-1 h-1 bg-purple-600 rotate-45"></div>
-            <div className="w-1 h-1 bg-purple-500 rotate-45"></div>
-            <div className="w-1 h-1 bg-purple-600 rotate-45"></div>
-          </div>
-        </div>
+  const TemplateHero = () => (
+    <div className="w-[350px] h-[230px] rounded-xl text-white shadow-2xl mx-auto relative overflow-hidden border border-gray-700/50 bg-gradient-to-br from-gray-900 to-black">
+      {/* Background Elements */}
+      <div className="absolute top-0 left-0 w-40 h-40 bg-purple-600 rounded-full opacity-10 -translate-x-20 -translate-y-20"></div>
+      <div className="absolute bottom-0 right-0 w-24 h-24 bg-blue-600 rounded-full opacity-10 translate-x-12 translate-y-12"></div>
 
-        <div className="flex flex-wrap gap-3 justify-center mb-6">
-          {profile.socialMedias.map(
-            (social, index) =>
-              social.platform &&
-              social.url && (
-                <a
-                  key={index}
-                  href={social.url}
-                  className="group relative"
-                  title={
-                    socialMediaOptions.find(
-                      (opt) => opt.value === social.platform
-                    )?.label
-                  }
-                >
-                  <div className="relative w-12 h-12">
-                    <div className="absolute inset-0 bg-purple-600 opacity-0 group-hover:opacity-20 blur-md transition-all duration-300 rounded-lg"></div>
+      <div className="relative z-10 h-full p-4 flex items-center">
+        <div className="flex items-center gap-3 w-full">
+          {/* Left - Profile Image */}
+          {showImage && (
+            <div className="flex-shrink-0">
+              <div className="w-20 h-20 bg-gradient-to-br from-purple-500/30 to-blue-500/30 rounded-full flex items-center justify-center relative overflow-hidden shadow-lg border border-purple-400/30">
+                {profile.profilePicture ? (
+                  <img
+                    src={
+                      profile.profilePicture ||
+                      `http://localhost:5000/${savedProfile.profilePicture}`
+                    }
+                    alt="Profile"
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-600/40 to-blue-600/40">
+                    <FiUser className="w-6 h-6 text-white/80" />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
-                    <div className="relative w-full h-full bg-gradient-to-br from-gray-900 to-gray-950 rounded-lg border border-gray-800 flex items-center justify-center group-hover:border-purple-500 group-hover:bg-gradient-to-br group-hover:from-purple-950 group-hover:to-gray-950 transition-all duration-300 group-hover:scale-110">
-                      <span className="text-base">
+          {/* Right - Content */}
+          <div className="flex-1 min-w-0">
+            <div className="text-green-400 font-semibold text-sm mb-2 leading-tight">
+              {profile.designation || "Professional"} From{" "}
+              {profile.city || "Your City"}
+            </div>
+
+            <h1 className="text-sm font-bold text-white mb-1 leading-tight">
+              {profile.fullName ? (
+                <>
+                  <span className="text-purple-300 text-sm">
+                    {profile.fullName}
+                  </span>
+                </>
+              ) : (
+                <>Your name</>
+              )}
+            </h1>
+
+            {/* Social Links - Compact Grid */}
+            {profile.socialMedias.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {profile.socialMedias.map(
+                  (social, index) =>
+                    social.platform &&
+                    social.url && (
+                      <a
+                        key={index}
+                        href={social.url}
+                        className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center hover:bg-gray-700 transition-all text-white text-[10px] border border-gray-600/50 hover:border-purple-400/50"
+                        title={
+                          socialMediaOptions.find(
+                            (opt) => opt.value === social.platform
+                          )?.label
+                        }
+                      >
                         {
                           socialMediaOptions.find(
                             (opt) => opt.value === social.platform
                           )?.icon
                         }
-                      </span>
-                    </div>
-
-                    <div className="absolute -top-0.5 -right-0.5 w-2 h-2 border-t-2 border-r-2 border-purple-500/50 opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
-                  </div>
-                </a>
-              )
-          )}
-        </div>
-
-        <div className="mt-6 pt-4 border-t border-gray-900 flex items-center justify-center text-xs">
-          <div className="flex gap-1">
-            <div className="w-1 h-3 bg-purple-700"></div>
-            <div className="w-1 h-3 bg-purple-600"></div>
-            <div className="w-1 h-3 bg-purple-500"></div>
-            <div className="w-1 h-3 bg-purple-600"></div>
-            <div className="w-1 h-3 bg-purple-700"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const TemplateHero = () => (
-    <div className="bg-gradient-to-br from-gray-900 to-black rounded-xl p-8 text-white shadow-2xl border border-gray-700/50 w-full max-w-sm mx-auto relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-64 h-64 bg-gray-700 rounded-full opacity-20 -translate-x-32 -translate-y-32"></div>
-      <div className="absolute bottom-0 right-0 w-32 h-32 bg-gray-700 rounded-full opacity-20 translate-x-16 translate-y-16"></div>
-
-      <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between">
-        {showImage && (
-          <div className="relative mb-6 lg:mb-0">
-            <div className="w-32 h-32 bg-[rgba(155,110,197,0.25)] rounded-full flex items-center justify-center relative overflow-hidden shadow-2xl">
-              {profile.profilePicture ? (
-                <img
-                  src={URL.createObjectURL(profile.profilePicture)}
-                  alt="Profile"
-                  className="w-full h-full object-cover rounded-full"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-[rgba(155,110,197,0.25)]">
-                  <FiUser className="w-12 h-12 text-white/80" />
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        <div
-          className={`flex-1 ${
-            showImage ? "lg:ml-6" : ""
-          } text-center lg:text-left`}
-        >
-          <div className="text-green-400 font-semibold text-sm mb-3">
-            {profile.designation || "Professional"} From{" "}
-            {profile.city || "Your City"}
-          </div>
-          <h1 className="text-2xl font-bold text-white mb-2 leading-tight">
-            {profile.fullName ? (
-              <>
-                {profile.fullName.split(" ")[0]}
-                <br />
-                <span className="text-purple-300">
-                  {profile.fullName.split(" ").slice(1).join(" ")}
-                </span>
-              </>
-            ) : (
-              "Your Name"
-            )}
-          </h1>
-
-          <div className="flex flex-wrap gap-2 mt-4 justify-center lg:justify-start">
-            {profile.socialMedias.map(
-              (social, index) =>
-                social.platform &&
-                social.url && (
-                  <a
-                    key={index}
-                    href={social.url}
-                    className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center hover:bg-gray-600 transition-all"
-                  >
-                    {
-                      socialMediaOptions.find(
-                        (opt) => opt.value === social.platform
-                      )?.icon
-                    }
-                  </a>
-                )
+                      </a>
+                    )
+                )}
+              </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Corner Accents */}
+      <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-green-400 rounded-full opacity-60"></div>
+      <div className="absolute bottom-2 left-2 w-1.5 h-1.5 bg-purple-400 rounded-full opacity-60"></div>
     </div>
   );
 
@@ -360,7 +547,10 @@ const HomeCard = ({ user }) => {
               <div className="w-20 h-20 rounded-xl border-2 border-blue-400/50 overflow-hidden bg-gradient-to-br from-blue-600 to-cyan-600 shadow-xl">
                 {profile.profilePicture ? (
                   <img
-                    src={URL.createObjectURL(profile.profilePicture)}
+                    src={
+                      profile.profilePicture ||
+                      `http://localhost:5000/${savedProfile.profilePicture}`
+                    }
                     alt="Profile"
                     className="w-full h-full object-cover"
                   />
@@ -423,7 +613,10 @@ const HomeCard = ({ user }) => {
             <div className="w-24 h-24 rounded-full border-4 border-gray-200 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 shadow-lg">
               {profile.profilePicture ? (
                 <img
-                  src={URL.createObjectURL(profile.profilePicture)}
+                  src={
+                    profile.profilePicture ||
+                    `http://localhost:5000/${savedProfile.profilePicture}`
+                  }
                   alt="Profile"
                   className="w-full h-full object-cover"
                 />
@@ -478,7 +671,10 @@ const HomeCard = ({ user }) => {
             <div className="w-28 h-28 rounded-full border-4 border-white/30 shadow-2xl overflow-hidden bg-white/20 backdrop-blur-sm">
               {profile.profilePicture ? (
                 <img
-                  src={URL.createObjectURL(profile.profilePicture)}
+                  src={
+                    profile.profilePicture ||
+                    `http://localhost:5000/${savedProfile.profilePicture}`
+                  }
                   alt="Profile"
                   className="w-full h-full object-cover"
                 />
@@ -541,7 +737,10 @@ const HomeCard = ({ user }) => {
             <div className="w-16 h-16 rounded-xl border-2 border-white/20 overflow-hidden bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-sm">
               {profile.profilePicture ? (
                 <img
-                  src={URL.createObjectURL(profile.profilePicture)}
+                  src={
+                    profile.profilePicture ||
+                    `http://localhost:5000/${savedProfile.profilePicture}`
+                  }
                   alt="Profile"
                   className="w-full h-full object-cover"
                 />
@@ -591,7 +790,10 @@ const HomeCard = ({ user }) => {
           <div className="w-24 h-24 rounded-full border-4 border-purple-400/50 mx-auto mb-6 flex items-center justify-center bg-gradient-to-br from-purple-600/20 to-blue-600/20 backdrop-blur-sm shadow-2xl">
             {profile.profilePicture ? (
               <img
-                src={URL.createObjectURL(profile.profilePicture)}
+                src={
+                  profile.profilePicture ||
+                  `http://localhost:5000/${savedProfile.profilePicture}`
+                }
                 alt="Profile"
                 className="w-full h-full object-cover rounded-full"
               />
@@ -648,7 +850,10 @@ const HomeCard = ({ user }) => {
             <div className="absolute inset-1 flex items-center justify-center overflow-hidden rounded-lg bg-gray-900 border border-cyan-400/30">
               {profile.profilePicture ? (
                 <img
-                  src={URL.createObjectURL(profile.profilePicture)}
+                  src={
+                    profile.profilePicture ||
+                    `http://localhost:5000/${savedProfile.profilePicture}`
+                  }
                   alt="Profile"
                   className="w-full h-full object-cover"
                 />
@@ -707,7 +912,10 @@ const HomeCard = ({ user }) => {
           <div className="w-24 h-24 rounded-full border-2 border-yellow-500/50 mx-auto mb-6 flex items-center justify-center bg-gradient-to-br from-yellow-600/10 to-yellow-400/10">
             {profile.profilePicture ? (
               <img
-                src={URL.createObjectURL(profile.profilePicture)}
+                src={
+                  profile.profilePicture ||
+                  `http://localhost:5000/${savedProfile.profilePicture}`
+                }
                 alt="Profile"
                 className="w-full h-full object-cover rounded-full"
               />
@@ -760,7 +968,10 @@ const HomeCard = ({ user }) => {
           <div className="w-20 h-20 rounded-full border-2 border-white/10 mx-auto mb-6 flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-700">
             {profile.profilePicture ? (
               <img
-                src={URL.createObjectURL(profile.profilePicture)}
+                src={
+                  profile.profilePicture ||
+                  `http://localhost:5000/${savedProfile.profilePicture}`
+                }
                 alt="Profile"
                 className="w-full h-full object-cover rounded-full"
               />
@@ -872,7 +1083,10 @@ const HomeCard = ({ user }) => {
                     {profile.profilePicture ? (
                       <>
                         <img
-                          src={URL.createObjectURL(profile.profilePicture)}
+                          src={
+                            profile.profilePicture ||
+                            `http://localhost:5000/${savedProfile.profilePicture}`
+                          }
                           alt="Profile Preview"
                           className="w-full h-full object-cover"
                         />
@@ -1092,12 +1306,17 @@ const HomeCard = ({ user }) => {
             <div className="mt-8">
               <button
                 onClick={handleSave}
+                disabled={saving}
                 className="w-full px-6 py-3 bg-gradient-to-r from-gray-700 to-gray-600 text-white rounded-xl font-medium hover:from-gray-600 hover:to-gray-500 transition-all duration-300 flex items-center justify-center gap-2 group relative overflow-hidden"
               >
                 <span className="absolute inset-0 bg-white/10 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
                 <span className="relative flex items-center justify-center gap-2">
-                  <FiSave className="w-5 h-5" />
-                  Save Profile
+                  {saving ? (
+                    <FiLoader className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <FiSave className="w-5 h-5" />
+                  )}
+                  {saving ? "Saving..." : "Save Profile"}
                 </span>
               </button>
             </div>
