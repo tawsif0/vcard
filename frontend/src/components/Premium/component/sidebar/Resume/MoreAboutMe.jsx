@@ -8,6 +8,8 @@ import {
   FiBook,
   FiTool,
   FiHeart,
+  FiChevronDown,
+  FiChevronUp,
 } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 
@@ -16,6 +18,8 @@ const MoreAboutMe = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [newItemInputs, setNewItemInputs] = useState({});
+  const [expandedCategoryId, setExpandedCategoryId] = useState(null);
+  const [savingCategory, setSavingCategory] = useState({});
 
   // Fetch about categories from backend
   const fetchAboutCategories = async () => {
@@ -184,14 +188,17 @@ const MoreAboutMe = () => {
       }
 
       const data = await response.json();
-      setCategories((prev) => [...prev, data.category]);
+      const newCategoryWithId = data.category;
+      
+      setCategories((prev) => [...prev, newCategoryWithId]);
       
       // Add new item input for this category
       setNewItemInputs(prev => ({
         ...prev,
-        [data.category._id]: ""
+        [newCategoryWithId._id]: ""
       }));
       
+      setExpandedCategoryId(newCategoryWithId._id); // Auto-expand new category
       toast.success("Category added successfully");
     } catch (error) {
       console.error("Error adding category:", error);
@@ -223,6 +230,7 @@ const MoreAboutMe = () => {
         return newInputs;
       });
 
+      if (expandedCategoryId === id) setExpandedCategoryId(null);
       toast.success("Category removed successfully");
     } catch (error) {
       console.error("Error deleting category:", error);
@@ -230,7 +238,23 @@ const MoreAboutMe = () => {
     }
   };
 
-  const handleSave = async () => {
+  const handleSaveCategory = async (category) => {
+    setSavingCategory(prev => ({ ...prev, [category._id]: true }));
+    
+    const success = await updateAboutCategory(category._id, {
+      title: category.title || "",
+      icon: category.icon || "FiBook",
+      items: category.items || []
+    });
+    
+    if (success) {
+      toast.success("Category saved successfully!");
+    }
+    
+    setSavingCategory(prev => ({ ...prev, [category._id]: false }));
+  };
+
+  const handleSaveAll = async () => {
     if (categories.length === 0) {
       toast.error("No categories to save");
       return;
@@ -251,7 +275,7 @@ const MoreAboutMe = () => {
       const allSaved = results.every(result => result === true);
       
       if (allSaved) {
-        toast.success("Information saved successfully!");
+        toast.success("All information saved successfully!");
       } else {
         toast.error("Some categories failed to save");
       }
@@ -273,19 +297,10 @@ const MoreAboutMe = () => {
     handleItemChange(categoryId, itemIndex, value);
   };
 
-  // Manual save for category title on blur
-  const handleTitleBlur = async (id) => {
-    const category = categories.find(cat => cat._id === id);
-    if (category && category.title) {
-      await updateAboutCategory(id, { title: category.title });
-    }
-  };
-
-  // Manual save for item on blur
-  const handleItemBlur = async (categoryId, itemIndex) => {
-    const category = categories.find(cat => cat._id === categoryId);
-    if (category && category.items && category.items[itemIndex]) {
-      await updateAboutCategory(categoryId, { items: category.items });
+  // Handle key press for adding items (Enter key)
+  const handleKeyPress = (e, categoryId) => {
+    if (e.key === 'Enter') {
+      addNewItem(categoryId);
     }
   };
 
@@ -297,13 +312,6 @@ const MoreAboutMe = () => {
     };
     const IconComponent = icons[iconName] || FiBook;
     return <IconComponent className="w-4 h-4" />;
-  };
-
-  // Handle key press for adding items (Enter key)
-  const handleKeyPress = (e, categoryId) => {
-    if (e.key === 'Enter') {
-      addNewItem(categoryId);
-    }
   };
 
   if (isLoading) {
@@ -325,149 +333,218 @@ const MoreAboutMe = () => {
                 <FiEdit className="w-5 h-5" />
                 Edit About Me
               </h2>
-              <button
-                onClick={addNewCategory}
-                className="px-4 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition flex items-center gap-2"
-              >
-                <FiPlus className="w-4 h-4" />
-                Add Category
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={addNewCategory}
+                  className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 flex items-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                  <span className="relative flex items-center gap-2">
+                    <FiPlus className="w-4 h-4" />
+                    Add Category
+                  </span>
+                </button>
+                {categories.length > 0 && (
+                  <button
+                    onClick={handleSaveAll}
+                    disabled={isSaving}
+                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 disabled:opacity-50 flex items-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-purple-500/20 transform hover:-translate-y-0.5 border border-purple-500/30"
+                  >
+                    <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                    <span className="relative flex items-center gap-2">
+                      {isSaving ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Saving All...
+                        </>
+                      ) : (
+                        <>
+                          <FiSave className="w-4 h-4" />
+                          Save All
+                        </>
+                      )}
+                    </span>
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="space-y-6">
-              {categories.map((category) => (
+            <div className="space-y-4 sm:space-y-6">
+              {categories.map((category, index) => (
                 <div
                   key={category._id}
-                  className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50"
+                  className="w-full bg-gray-800/50 rounded-xl border border-gray-700/50"
                 >
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        className="text-lg font-semibold text-white bg-transparent border-b border-gray-600 focus:border-blue-500 focus:outline-none pb-1 w-full placeholder-gray-500"
-                        value={category.title || ""}
-                        onChange={e =>
-                          handleInputChange(
-                            category._id,
-                            "title",
-                            e.target.value
-                          )
-                        }
-                        onBlur={() => handleTitleBlur(category._id)}
-                        placeholder="Category title"
-                      />
-                    </div>
+                  {/* Dropdown Header */}
+                  <div
+                    className="flex flex-row justify-between items-center px-4 py-3 sm:px-6 sm:py-4 cursor-pointer select-none"
+                    onClick={() =>
+                      setExpandedCategoryId(
+                        expandedCategoryId === category._id ? null : category._id
+                      )
+                    }
+                    title={`Show/Hide Category #${index + 1}`}
+                  >
+                    <h3 className="text-base sm:text-lg font-semibold text-white flex items-center">
+                      {expandedCategoryId === category._id ? (
+                        <FiChevronUp className="mr-2" />
+                      ) : (
+                        <FiChevronDown className="mr-2" />
+                      )}
+                      Category #{index + 1}
+                    </h3>
                     <button
-                      onClick={() => removeCategory(category._id)}
-                      className="p-2 text-red-400 hover:text-red-300 transition ml-4"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeCategory(category._id);
+                      }}
+                      className="p-2 text-red-400 hover:text-red-300 transition"
                       title="Remove Category"
                     >
                       <FiTrash2 className="w-4 h-4" />
                     </button>
                   </div>
 
-                  <div className="space-y-3 mb-4">
-                    {category.items && category.items.map((item, itemIndex) => (
-                      <div
-                        key={itemIndex}
-                        className="flex items-center gap-4 p-3 bg-gray-800/30 rounded-lg border border-gray-700/30"
-                      >
-                        <div className="text-blue-400 flex-shrink-0">
-                          {getIconComponent(category.icon)}
-                        </div>
-                        <div className="flex-1">
-                          <input
-                            type="text"
-                            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-lg text-white focus:border-gray-500 focus:outline-none transition text-sm placeholder-gray-500"
-                            value={item}
-                            onChange={e =>
-                              handleItemInputChange(
-                                category._id,
-                                itemIndex,
-                                e.target.value
-                              )
-                            }
-                            onBlur={() => handleItemBlur(category._id, itemIndex)}
-                            placeholder="Item name"
-                          />
-                        </div>
-                        <button
-                          onClick={() => removeItem(category._id, itemIndex)}
-                          className="p-2 text-red-400 hover:text-red-300 transition"
-                          title="Remove Item"
-                        >
-                          <FiTrash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Add New Item to Category */}
-                  <div className="mt-4 p-4 bg-gray-800/20 rounded-lg border border-dashed border-gray-600">
-                    <div className="flex gap-3 items-end">
-                      <div className="flex-1">
+                  {/* Expandable Content */}
+                  {expandedCategoryId === category._id && (
+                    <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-1 sm:pt-2">
+                      {/* Category Title Input */}
+                      <div className="mb-6">
                         <label className="block text-sm font-medium text-gray-300 mb-2">
-                          New Item Name
+                          Category Title
                         </label>
                         <input
                           type="text"
-                          className="w-full px-3 py-2 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-lg text-white focus:border-gray-500 focus:outline-none transition text-sm placeholder-gray-500"
-                          value={newItemInputs[category._id] || ""}
-                          onChange={e => 
-                            handleNewItemInputChange(category._id, e.target.value)
+                          className="w-full px-4 py-3 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl text-white focus:border-gray-500 transition placeholder-gray-500"
+                          value={category.title || ""}
+                          onChange={e =>
+                            handleInputChange(
+                              category._id,
+                              "title",
+                              e.target.value
+                            )
                           }
-                          onKeyPress={(e) => handleKeyPress(e, category._id)}
-                          placeholder="Enter new item name"
+                          placeholder="e.g., Hobbies, Skills, Interests"
                         />
                       </div>
-                      <button
-                        onClick={() => addNewItem(category._id)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition flex items-center gap-2 text-sm mb-2"
-                      >
-                        <FiPlus className="w-3 h-3" />
-                        Add Item
-                      </button>
+
+                      {/* Existing Items */}
+                      <div className="space-y-3 mb-6">
+                        <label className="block text-sm font-medium text-gray-300">
+                          Items
+                        </label>
+                        {category.items && category.items.map((item, itemIndex) => (
+                          <div
+                            key={itemIndex}
+                            className="flex items-center gap-4 p-3 bg-gray-800/30 rounded-lg border border-gray-700/30"
+                          >
+                            <div className="text-cyan-400 flex-shrink-0">
+                              {getIconComponent(category.icon)}
+                            </div>
+                            <div className="flex-1">
+                              <input
+                                type="text"
+                                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-lg text-white focus:border-gray-500 focus:outline-none transition text-sm placeholder-gray-500"
+                                value={item}
+                                onChange={e =>
+                                  handleItemInputChange(
+                                    category._id,
+                                    itemIndex,
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="Item name"
+                              />
+                            </div>
+                            <button
+                              onClick={() => removeItem(category._id, itemIndex)}
+                              className="p-2 text-red-400 hover:text-red-300 transition"
+                              title="Remove Item"
+                            >
+                              <FiTrash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Add New Item to Category */}
+                      <div className="mt-4 p-4 bg-gray-800/20 rounded-lg border border-dashed border-gray-600">
+                        <h4 className="text-sm font-medium text-gray-300 mb-3">Add New Item</h4>
+                        <div className="flex flex-col sm:flex-row gap-3 items-end">
+                          <div className="flex-1">
+                            <label className="block text-sm font-medium text-gray-300 mb-2">
+                              Item Name
+                            </label>
+                            <input
+                              type="text"
+                              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-lg text-white focus:border-gray-500 focus:outline-none transition text-sm placeholder-gray-500"
+                              value={newItemInputs[category._id] || ""}
+                              onChange={e => 
+                                handleNewItemInputChange(category._id, e.target.value)
+                              }
+                              onKeyPress={(e) => handleKeyPress(e, category._id)}
+                              placeholder="Enter new item name"
+                            />
+                          </div>
+                          <button
+                            onClick={() => addNewItem(category._id)}
+                            className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-lg font-medium hover:from-cyan-700 hover:to-teal-700 transition flex items-center gap-2 text-sm w-full sm:w-auto justify-center"
+                          >
+                            <FiPlus className="w-3 h-3" />
+                            Add Item
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Individual Save Button */}
+                      <div className="mt-6">
+                        <button
+                          onClick={() => handleSaveCategory(category)}
+                          disabled={savingCategory[category._id]}
+                          className="w-full px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
+                        >
+                          <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                          <span className="relative flex items-center justify-center gap-2">
+                            {savingCategory[category._id] ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <FiSave className="w-4 h-4" />
+                                Save Category
+                              </>
+                            )}
+                          </span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               ))}
 
               {categories.length === 0 && (
-                <div className="text-center py-8 text-gray-400">
-                  <FiBook className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No categories added yet.</p>
-                  <p className="text-sm">Click "Add Category" to get started.</p>
+                <div className="text-center py-12 border-2 border-dashed border-gray-700 rounded-xl">
+                  <FiBook className="w-12 h-12 mx-auto mb-4 text-gray-500" />
+                  <p className="text-gray-400 mb-4">No categories added yet</p>
+                  <button
+                    onClick={addNewCategory}
+                    className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 flex items-center gap-2 mx-auto group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
+                  >
+                    <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                    <span className="relative flex items-center gap-2">
+                      <FiPlus className="w-4 h-4" />
+                      Add Your First Category
+                    </span>
+                  </button>
                 </div>
               )}
             </div>
-
-            {/* Save Button */}
-            <div className="mt-8">
-              <button
-                onClick={handleSave}
-                disabled={isSaving || categories.length === 0}
-                className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-medium hover:from-blue-700 hover:to-cyan-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group relative overflow-hidden"
-              >
-                <span className="absolute inset-0 bg-white/10 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
-                <span className="relative flex items-center justify-center gap-2">
-                  {isSaving ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <FiSave className="w-4 h-4" />
-                      Save All Changes
-                    </>
-                  )}
-                </span>
-              </button>
-            </div>
           </div>
 
-          {/* Right Column - Preview */}
-          <div className="bg-transparent rounded-2xl p-6 border border-cyan-500/30  self-start overflow-y-auto backdrop-blur-lg">
+          {/* Right Column - Preview (unchanged) */}
+          <div className="bg-transparent rounded-2xl p-6 border border-cyan-500/30 self-start overflow-y-auto backdrop-blur-lg">
             <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
               <FiEye className="w-5 h-5" />
               Live Preview

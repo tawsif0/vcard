@@ -74,6 +74,7 @@ const Sidebar = ({
       icon: <FiFileText />,
       children: [
         { name: "Work Experience", component: "workExperience" },
+        { name: "Education", component: "education" },
         { name: "My Skills", component: "mySkills" },
         { name: "Award & Achievements", component: "awards" },
         { name: "More About Me", component: "moreAboutMe" },

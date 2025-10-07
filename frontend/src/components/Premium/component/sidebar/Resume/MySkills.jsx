@@ -9,6 +9,8 @@ import {
   FiStar,
   FiAward,
   FiTrendingUp,
+  FiChevronDown,
+  FiChevronUp,
 } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 
@@ -16,8 +18,10 @@ const MySkills = () => {
   const [skills, setSkills] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [newSkillName, setNewSkillName] = useState("");
-  const [newSkillLevel, setNewSkillLevel] = useState(50);
+  const [newSkillNames, setNewSkillNames] = useState({}); // Separate state for each category
+  const [newSkillLevels, setNewSkillLevels] = useState({}); // Separate state for each category
+  const [expandedCategoryId, setExpandedCategoryId] = useState(null);
+  const [savingCategory, setSavingCategory] = useState({});
 
   // Fetch skills on component mount
   useEffect(() => {
@@ -38,6 +42,16 @@ const MySkills = () => {
 
       const data = await response.json();
       setSkills(data.skills || []);
+      
+      // Initialize separate states for each category
+      const initialNewSkillNames = {};
+      const initialNewSkillLevels = {};
+      data.skills?.forEach(category => {
+        initialNewSkillNames[category._id] = "";
+        initialNewSkillLevels[category._id] = 50;
+      });
+      setNewSkillNames(initialNewSkillNames);
+      setNewSkillLevels(initialNewSkillLevels);
     } catch (error) {
       console.error("Error fetching skills:", error);
       toast.error("Failed to load skills");
@@ -104,7 +118,10 @@ const MySkills = () => {
   };
 
   const addNewSkill = async (categoryId) => {
-    if (!newSkillName.trim()) {
+    const skillName = newSkillNames[categoryId]?.trim();
+    const skillLevel = newSkillLevels[categoryId] || 50;
+
+    if (!skillName) {
       toast.error("Please enter a skill name");
       return;
     }
@@ -114,14 +131,15 @@ const MySkills = () => {
 
     const updatedItems = [
       ...(category.items || []),
-      { name: newSkillName, level: newSkillLevel }
+      { name: skillName, level: skillLevel }
     ];
 
     const success = await updateSkillCategory(categoryId, { items: updatedItems });
     
     if (success) {
-      setNewSkillName("");
-      setNewSkillLevel(50);
+      // Reset only this category's new skill inputs
+      setNewSkillNames(prev => ({ ...prev, [categoryId]: "" }));
+      setNewSkillLevels(prev => ({ ...prev, [categoryId]: 50 }));
       toast.success("Skill added successfully");
     }
   };
@@ -162,7 +180,15 @@ const MySkills = () => {
       }
 
       const data = await response.json();
-      setSkills((prev) => [...prev, data.category]);
+      const newCategoryWithId = data.category;
+      
+      setSkills((prev) => [...prev, newCategoryWithId]);
+      
+      // Initialize new skill inputs for this category
+      setNewSkillNames(prev => ({ ...prev, [newCategoryWithId._id]: "" }));
+      setNewSkillLevels(prev => ({ ...prev, [newCategoryWithId._id]: 50 }));
+      
+      setExpandedCategoryId(newCategoryWithId._id); // Auto-expand new category
       toast.success("Category added successfully");
     } catch (error) {
       console.error("Error adding category:", error);
@@ -186,6 +212,20 @@ const MySkills = () => {
       }
 
       setSkills(prev => prev.filter(category => category._id !== id));
+      
+      // Clean up the state for removed category
+      setNewSkillNames(prev => {
+        const updated = { ...prev };
+        delete updated[id];
+        return updated;
+      });
+      setNewSkillLevels(prev => {
+        const updated = { ...prev };
+        delete updated[id];
+        return updated;
+      });
+      
+      if (expandedCategoryId === id) setExpandedCategoryId(null);
       toast.success("Category removed successfully");
     } catch (error) {
       console.error("Error deleting category:", error);
@@ -193,7 +233,22 @@ const MySkills = () => {
     }
   };
 
-  const handleSave = async () => {
+  const handleSaveCategory = async (category) => {
+    setSavingCategory(prev => ({ ...prev, [category._id]: true }));
+    
+    const success = await updateSkillCategory(category._id, {
+      category: category.category || "",
+      items: category.items || []
+    });
+    
+    if (success) {
+      toast.success("Category saved successfully!");
+    }
+    
+    setSavingCategory(prev => ({ ...prev, [category._id]: false }));
+  };
+
+  const handleSaveAll = async () => {
     if (skills.length === 0) {
       toast.error("No skills to save");
       return;
@@ -201,7 +256,6 @@ const MySkills = () => {
 
     setIsSaving(true);
     try {
-      // Save all categories with their skills
       const savePromises = skills.map((category) =>
         updateSkillCategory(category._id, {
           category: category.category || "",
@@ -213,7 +267,7 @@ const MySkills = () => {
       const allSaved = results.every(result => result === true);
       
       if (allSaved) {
-        toast.success("Skills saved successfully!");
+        toast.success("All skills saved successfully!");
       } else {
         toast.error("Some skills failed to save");
       }
@@ -225,17 +279,26 @@ const MySkills = () => {
     }
   };
 
-  // Handle input changes WITHOUT auto-save to prevent typing issues
+  // Handle input changes
   const handleInputChange = (id, field, value) => {
     handleCategoryChange(id, field, value);
   };
 
-  // Handle skill changes WITHOUT auto-save to prevent typing issues
   const handleSkillInputChange = (categoryId, skillIndex, field, value) => {
     handleSkillChange(categoryId, skillIndex, field, value);
   };
 
-  // Plus/Minus button handlers for skill level - CHANGED TO INCREASE BY 1
+  // Handle new skill name change for specific category
+  const handleNewSkillNameChange = (categoryId, value) => {
+    setNewSkillNames(prev => ({ ...prev, [categoryId]: value }));
+  };
+
+  // Handle new skill level change for specific category
+  const handleNewSkillLevelChange = (categoryId, value) => {
+    setNewSkillLevels(prev => ({ ...prev, [categoryId]: parseInt(value) || 0 }));
+  };
+
+  // Plus/Minus button handlers for skill level
   const handleLevelIncrease = (categoryId, skillIndex, currentLevel) => {
     const newLevel = Math.min(100, currentLevel + 1);
     handleSkillChange(categoryId, skillIndex, "level", newLevel);
@@ -246,13 +309,19 @@ const MySkills = () => {
     handleSkillChange(categoryId, skillIndex, "level", newLevel);
   };
 
-  // Plus/Minus for new skill level - CHANGED TO INCREASE BY 1
-  const handleNewLevelIncrease = () => {
-    setNewSkillLevel(prev => Math.min(100, prev + 1));
+  // Plus/Minus for new skill level by category
+  const handleNewLevelIncrease = (categoryId) => {
+    setNewSkillLevels(prev => ({
+      ...prev,
+      [categoryId]: Math.min(100, (prev[categoryId] || 50) + 1)
+    }));
   };
 
-  const handleNewLevelDecrease = () => {
-    setNewSkillLevel(prev => Math.max(0, prev - 1));
+  const handleNewLevelDecrease = (categoryId) => {
+    setNewSkillLevels(prev => ({
+      ...prev,
+      [categoryId]: Math.max(0, (prev[categoryId] || 50) - 1)
+    }));
   };
 
   // Function to get gradient color based on skill level
@@ -291,227 +360,332 @@ const MySkills = () => {
                 <FiEdit className="w-5 h-5" />
                 Edit Skills
               </h2>
-              <button
-                onClick={addNewCategory}
-                className="px-4 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition flex items-center gap-2"
-              >
-                <FiPlus className="w-4 h-4" />
-                Add Category
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={addNewCategory}
+                  className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 flex items-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                  <span className="relative flex items-center gap-2">
+                    <FiPlus className="w-4 h-4" />
+                    Add Category
+                  </span>
+                </button>
+                {skills.length > 0 && (
+                  <button
+                    onClick={handleSaveAll}
+                    disabled={isSaving}
+                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 disabled:opacity-50 flex items-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-purple-500/20 transform hover:-translate-y-0.5 border border-purple-500/30"
+                  >
+                    <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                    <span className="relative flex items-center gap-2">
+                      {isSaving ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Saving All...
+                        </>
+                      ) : (
+                        <>
+                          <FiSave className="w-4 h-4" />
+                          Save All
+                        </>
+                      )}
+                    </span>
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {skills.map((category, index) => (
                 <div
                   key={category._id || index}
-                  className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50"
+                  className="w-full bg-gray-800/50 rounded-xl border border-gray-700/50"
                 >
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        className="text-lg font-semibold text-white bg-transparent border-b border-gray-600 focus:border-purple-500 focus:outline-none pb-1 w-full placeholder-gray-500"
-                        value={category.category || ""}
-                        onChange={e =>
-                          handleInputChange(
-                            category._id,
-                            "category",
-                            e.target.value
-                          )
-                        }
-                        placeholder="Category Name"
-                      />
-                    </div>
+                  {/* Dropdown Header */}
+                  <div
+                    className="flex flex-row justify-between items-center px-4 py-3 sm:px-6 sm:py-4 cursor-pointer select-none"
+                    onClick={() =>
+                      setExpandedCategoryId(
+                        expandedCategoryId === category._id ? null : category._id
+                      )
+                    }
+                    title={`Show/Hide Category #${index + 1}`}
+                  >
+                    <h3 className="text-base sm:text-lg font-semibold text-white flex items-center">
+                      {expandedCategoryId === category._id ? (
+                        <FiChevronUp className="mr-2" />
+                      ) : (
+                        <FiChevronDown className="mr-2" />
+                      )}
+                      Category #{index + 1}
+                    </h3>
                     <button
-                      onClick={() => removeCategory(category._id)}
-                      className="p-2 text-red-400 hover:text-red-300 transition ml-4"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeCategory(category._id);
+                      }}
+                      className="p-2 text-red-400 hover:text-red-300 transition"
                       title="Remove Category"
                     >
                       <FiTrash2 className="w-4 h-4" />
                     </button>
                   </div>
 
-                  <div className="space-y-3">
-                    {category.items && category.items.map((skill, skillIndex) => (
-                      <div
-                        key={skillIndex}
-                        className="flex items-center gap-3 p-3 bg-gray-800/30 rounded-lg border border-gray-700/30"
-                      >
-                        <div className="flex-1">
-                          <input
-                            type="text"
-                            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-lg text-white focus:border-gray-500 transition text-sm placeholder-gray-500"
-                            value={skill.name || ""}
-                            onChange={e =>
-                              handleSkillInputChange(
-                                category._id,
-                                skillIndex,
-                                "name",
-                                e.target.value
-                              )
-                            }
-                            placeholder="Skill name"
-                          />
-                        </div>
-                        
-                        {/* Level Control with Plus/Minus Buttons - PERFECTLY ALIGNED */}
-                        <div className="flex items-center gap-2 w-48">
-                          <div className="flex items-center justify-between w-full bg-gray-800/50 rounded-lg p-1 border border-gray-700/50">
-                            <button
-                              onClick={() => handleLevelDecrease(category._id, skillIndex, skill.level || 0)}
-                              className="p-1.5 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded transition disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300 flex items-center justify-center"
-                              disabled={(skill.level || 0) <= 0}
-                            >
-                              <FiMinus className="w-3 h-3" />
-                            </button>
-                            
-                            <div className="flex flex-col items-center mx-2 flex-1 min-w-0">
+                  {/* Expandable Content */}
+                  {expandedCategoryId === category._id && (
+                    <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-1 sm:pt-2">
+                      {/* Category Name Input */}
+                      <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Category Name
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-4 py-3 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl text-white focus:border-gray-500 transition placeholder-gray-500"
+                          value={category.category || ""}
+                          onChange={e =>
+                            handleInputChange(
+                              category._id,
+                              "category",
+                              e.target.value
+                            )
+                          }
+                          placeholder="e.g., Programming Languages"
+                        />
+                      </div>
+
+                      {/* Existing Skills */}
+                      <div className="space-y-3 mb-6">
+                        <label className="block text-sm font-medium text-gray-300">
+                          Skills
+                        </label>
+                        {category.items && category.items.map((skill, skillIndex) => (
+                          <div
+                            key={skillIndex}
+                            className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 bg-gray-800/30 rounded-lg border border-gray-700/30"
+                          >
+                            {/* Skill Name Input */}
+                            <div className="flex-1 w-full sm:w-auto">
                               <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                step="1"
-                                className="w-full accent-purple-500"
-                                value={skill.level || 0}
+                                type="text"
+                                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-lg text-white focus:border-gray-500 transition text-sm placeholder-gray-500"
+                                value={skill.name || ""}
                                 onChange={e =>
                                   handleSkillInputChange(
                                     category._id,
                                     skillIndex,
-                                    "level",
-                                    parseInt(e.target.value)
+                                    "name",
+                                    e.target.value
                                   )
                                 }
+                                placeholder="Skill name"
                               />
-                              <span className="text-white text-xs font-medium mt-1 whitespace-nowrap">
-                                {skill.level || 0}%
-                              </span>
+                            </div>
+                            
+                            {/* Level Control - Mobile Responsive */}
+                            <div className="flex items-center gap-2 w-full sm:w-64">
+                              <div className="flex items-center justify-between w-full bg-gray-800/50 rounded-lg p-1 border border-gray-700/50">
+                                <button
+                                  onClick={() => handleLevelDecrease(category._id, skillIndex, skill.level || 0)}
+                                  className="p-1.5 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded transition disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300 flex items-center justify-center"
+                                  disabled={(skill.level || 0) <= 0}
+                                >
+                                  <FiMinus className="w-3 h-3" />
+                                </button>
+                                
+                                <div className="flex flex-col items-center mx-2 flex-1 min-w-0">
+                                  <input
+                                    type="range"
+                                    min="0"
+                                    max="100"
+                                    step="1"
+                                    className="w-full accent-purple-500"
+                                    value={skill.level || 0}
+                                    onChange={e =>
+                                      handleSkillInputChange(
+                                        category._id,
+                                        skillIndex,
+                                        "level",
+                                        parseInt(e.target.value)
+                                      )
+                                    }
+                                  />
+                                  <div className="flex items-center gap-2 mt-1 w-full">
+                                    <span className="text-white text-xs font-medium whitespace-nowrap">
+                                      {skill.level || 0}%
+                                    </span>
+                                    {/* Level Input Field */}
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max="100"
+                                      className="w-12 px-1 py-0.5 bg-gray-700 border border-gray-600 rounded text-white text-xs text-center"
+                                      value={skill.level || 0}
+                                      onChange={e => {
+                                        const value = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                                        handleSkillInputChange(
+                                          category._id,
+                                          skillIndex,
+                                          "level",
+                                          value
+                                        );
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                                
+                                <button
+                                  onClick={() => handleLevelIncrease(category._id, skillIndex, skill.level || 0)}
+                                  className="p-1.5 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded transition disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300 flex items-center justify-center"
+                                  disabled={(skill.level || 0) >= 100}
+                                >
+                                  <FiPlus className="w-3 h-3" />
+                                </button>
+                              </div>
                             </div>
                             
                             <button
-                              onClick={() => handleLevelIncrease(category._id, skillIndex, skill.level || 0)}
-                              className="p-1.5 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded transition disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300 flex items-center justify-center"
-                              disabled={(skill.level || 0) >= 100}
+                              onClick={() => removeSkill(category._id, skillIndex)}
+                              className="p-2 text-red-400 hover:text-red-300 transition flex-shrink-0 self-center"
+                              title="Remove Skill"
                             >
-                              <FiPlus className="w-3 h-3" />
+                              <FiTrash2 className="w-3 h-3" />
                             </button>
                           </div>
+                        ))}
+                      </div>
+
+                      {/* Add New Skill to Category */}
+                      <div className="mt-4 p-4 bg-gray-800/20 rounded-lg border border-dashed border-gray-600">
+                        <h4 className="text-sm font-medium text-gray-300 mb-3">Add New Skill</h4>
+                        <div className="flex flex-col sm:flex-row gap-3 items-end">
+                          <div className="flex-1">
+                            <label className="block text-sm font-medium text-gray-300 mb-2">
+                              Skill Name
+                            </label>
+                            <input
+                              type="text"
+                              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-lg text-white focus:border-gray-500 transition text-sm placeholder-gray-500"
+                              value={newSkillNames[category._id] || ""}
+                              onChange={e => handleNewSkillNameChange(category._id, e.target.value)}
+                              placeholder="Enter skill name"
+                            />
+                          </div>
+                          
+                          <div className="w-full sm:w-64">
+                            <label className="block text-sm font-medium text-gray-300 mb-2">
+                              Level
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center justify-between w-full bg-gray-800/50 rounded-lg p-1 border border-gray-700/50">
+                                <button
+                                  onClick={() => handleNewLevelDecrease(category._id)}
+                                  className="p-1.5 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded transition disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300 flex items-center justify-center"
+                                  disabled={(newSkillLevels[category._id] || 50) <= 0}
+                                >
+                                  <FiMinus className="w-3 h-3" />
+                                </button>
+                                
+                                <div className="flex flex-col items-center mx-2 flex-1 min-w-0">
+                                  <input
+                                    type="range"
+                                    min="0"
+                                    max="100"
+                                    step="1"
+                                    className="w-full accent-purple-500"
+                                    value={newSkillLevels[category._id] || 50}
+                                    onChange={e => handleNewSkillLevelChange(category._id, e.target.value)}
+                                  />
+                                  <div className="flex items-center gap-2 mt-1 w-full">
+                                    <span className="text-white text-xs font-medium whitespace-nowrap">
+                                      {newSkillLevels[category._id] || 50}%
+                                    </span>
+                                    {/* Level Input Field for New Skill */}
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max="100"
+                                      className="w-12 px-1 py-0.5 bg-gray-700 border border-gray-600 rounded text-white text-xs text-center"
+                                      value={newSkillLevels[category._id] || 50}
+                                      onChange={e => {
+                                        const value = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                                        handleNewSkillLevelChange(category._id, value);
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                                
+                                <button
+                                  onClick={() => handleNewLevelIncrease(category._id)}
+                                  className="p-1.5 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded transition disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300 flex items-center justify-center"
+                                  disabled={(newSkillLevels[category._id] || 50) >= 100}
+                                >
+                                  <FiPlus className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <button
+                            onClick={() => addNewSkill(category._id)}
+                            className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-lg font-medium hover:from-cyan-700 hover:to-teal-700 transition flex items-center gap-2 text-sm flex-shrink-0 w-full sm:w-auto justify-center"
+                          >
+                            <FiPlus className="w-3 h-3" />
+                            Add Skill
+                          </button>
                         </div>
-                        
+                      </div>
+
+                      {/* Individual Save Button */}
+                      <div className="mt-6">
                         <button
-                          onClick={() => removeSkill(category._id, skillIndex)}
-                          className="p-2 text-red-400 hover:text-red-300 transition flex-shrink-0"
-                          title="Remove Skill"
+                          onClick={() => handleSaveCategory(category)}
+                          disabled={savingCategory[category._id]}
+                          className="w-full px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
                         >
-                          <FiTrash2 className="w-3 h-3" />
+                          <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                          <span className="relative flex items-center justify-center gap-2">
+                            {savingCategory[category._id] ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <FiSave className="w-4 h-4" />
+                                Save Category
+                              </>
+                            )}
+                          </span>
                         </button>
                       </div>
-                    ))}
-                  </div>
-
-                  {/* Add New Skill to Category - PERFECTLY ALIGNED */}
-                  <div className="mt-4 p-4 bg-gray-800/20 rounded-lg border border-dashed border-gray-600">
-                    <div className="flex gap-3 items-end">
-                      <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                          New Skill Name
-                        </label>
-                        <input
-                          type="text"
-                          className="w-full px-3 py-2 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-lg text-white focus:border-gray-500 transition text-sm placeholder-gray-500"
-                          value={newSkillName}
-                          onChange={e => setNewSkillName(e.target.value)}
-                          placeholder="Enter skill name"
-                        />
-                      </div>
-                      
-                      <div className="w-48">
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                          Level
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center justify-between w-full bg-gray-800/50 rounded-lg p-1 border border-gray-700/50">
-                            <button
-                              onClick={handleNewLevelDecrease}
-                              className="p-1.5 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded transition disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300 flex items-center justify-center"
-                              disabled={newSkillLevel <= 0}
-                            >
-                              <FiMinus className="w-3 h-3" />
-                            </button>
-                            
-                            <div className="flex flex-col items-center mx-2 flex-1 min-w-0">
-                              <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                step="1"
-                                className="w-full accent-purple-500"
-                                value={newSkillLevel}
-                                onChange={e => setNewSkillLevel(parseInt(e.target.value))}
-                              />
-                              <span className="text-white text-xs font-medium mt-1 whitespace-nowrap">
-                                {newSkillLevel}%
-                              </span>
-                            </div>
-                            
-                            <button
-                              onClick={handleNewLevelIncrease}
-                              className="p-1.5 text-gray-300 hover:text-white hover:bg-gray-700/50 rounded transition disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300 flex items-center justify-center"
-                              disabled={newSkillLevel >= 100}
-                            >
-                              <FiPlus className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <button
-                        onClick={() => addNewSkill(category._id)}
-                        className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition flex items-center gap-2 text-sm flex-shrink-0"
-                      >
-                        <FiPlus className="w-3 h-3" />
-                        Add
-                      </button>
                     </div>
-                  </div>
+                  )}
                 </div>
               ))}
 
               {skills.length === 0 && (
-                <div className="text-center py-8 text-gray-400">
-                  <FiAward className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No skill categories added yet.</p>
-                  <p className="text-sm">Click "Add Category" to get started.</p>
+                <div className="text-center py-12 border-2 border-dashed border-gray-700 rounded-xl">
+                  <FiAward className="w-12 h-12 mx-auto mb-4 text-gray-500" />
+                  <p className="text-gray-400 mb-4">No skill categories added yet</p>
+                  <button
+                    onClick={addNewCategory}
+                    className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 flex items-center gap-2 mx-auto group relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
+                  >
+                    <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                    <span className="relative flex items-center gap-2">
+                      <FiPlus className="w-4 h-4" />
+                      Add Your First Category
+                    </span>
+                  </button>
                 </div>
               )}
             </div>
-
-            {/* Save Button */}
-            <div className="mt-8">
-              <button
-                onClick={handleSave}
-                disabled={isSaving || skills.length === 0}
-                className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group relative overflow-hidden"
-              >
-                <span className="absolute inset-0 bg-white/10 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
-                <span className="relative flex items-center justify-center gap-2">
-                  {isSaving ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <FiSave className="w-4 h-4" />
-                      Save All Changes
-                    </>
-                  )}
-                </span>
-              </button>
-            </div>
           </div>
 
-          {/* Right Column - Preview */}
-          <div className="bg-gray-900/10 backdrop-blur-2xl rounded-2xl shadow-2xl p-6 border border-white/10  self-start overflow-y-auto">
+          {/* Right Column - Preview (unchanged) */}
+          <div className="bg-gray-900/10 backdrop-blur-2xl rounded-2xl shadow-2xl p-6 border border-white/10 self-start overflow-y-auto">
             <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
               <FiEye className="w-5 h-5" />
               Skills Preview
