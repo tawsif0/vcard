@@ -241,7 +241,7 @@ const BlogCategory = () => {
 
   return (
     <div className="w-full py-8 px-4 sm:px-6 lg:px-8 relative overflow-visible">
-      <div className="mx-auto max-w-4xl relative z-10">
+      <div className="mx-auto relative z-10">
         <div className="text-center mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">
             Blog Categories
@@ -289,7 +289,7 @@ const BlogCategory = () => {
                 whileTap={{ scale: 0.98 }}
                 type="submit"
                 disabled={isSubmitting}
-                className={`w-full group relative bg-gradient-to-r from-cyan-600 to-teal-600 text-white px-6 py-4 rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30 ${
+                className={`w-full group relative bg-gradient-to-r from-cyan-600 to-teal-600 text-white px-6 py-4 rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 overflow-hidden border border-cyan-500/30 ${
                   isSubmitting ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >

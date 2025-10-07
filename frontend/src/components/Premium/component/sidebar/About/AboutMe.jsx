@@ -449,7 +449,7 @@ const AboutMe = ({ user }) => {
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="w-full group relative bg-gradient-to-r from-cyan-600 to-teal-600 text-white px-6 py-4 rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 border border-cyan-500/30"
+                className="w-full group relative bg-gradient-to-r from-cyan-600 to-teal-600 text-white px-6 py-4 rounded-xl font-semibold hover:from-cyan-700 hover:to-teal-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transform hover:-translate-y-0.5 overflow-hidden border border-cyan-500/30"
               >
                 <span className="absolute inset-0 bg-white/10 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
                 <span className="relative flex items-center justify-center gap-2">
@@ -721,7 +721,7 @@ const AboutMe = ({ user }) => {
       </div>
 
       {/* Add custom styles for the preview content */}
-      <style jsx>{`
+      <style>{`
         .preview-content ul,
         .preview-content ol {
           margin: 0.5rem 0;

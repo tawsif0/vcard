@@ -38,6 +38,7 @@ import ModifyBlog from "../sidebar/Blog/ModifyBlog";
 import Blog from "../sidebar/Blog/BlogPage";
 import BlogPage from "../sidebar/Blog/BlogPage";
 import Navbar from "../sidebar/Navbar/Navbar";
+import ProfileShare from "../sidebar/ProfileShare";
 
 const PremiumDashboard = () => {
   const [activeView, setActiveView] = useState(() => {
@@ -140,6 +141,9 @@ const PremiumDashboard = () => {
         return <ContactedUser />;
       case "profileSettings":
         return <PremiumSettings />;
+      case "profileShare":
+        return <ProfileShare />;
+
       default:
         return <DashboardHome />;
     }
