@@ -39,6 +39,10 @@ import Blog from "../sidebar/Blog/BlogPage";
 import BlogPage from "../sidebar/Blog/BlogPage";
 import Navbar from "../sidebar/Navbar/Navbar";
 
+import ProfileShare from "../sidebar/ProfileShare";
+
+import Education from "../sidebar/Resume/Education";
+
 const PremiumDashboard = () => {
   const [activeView, setActiveView] = useState(() => {
     const savedView = localStorage.getItem("premiumActiveView");
@@ -105,6 +109,8 @@ const PremiumDashboard = () => {
       // Resume Section
       case "workExperience":
         return <WorkExperience />;
+      case "education":
+        return <Education />;
       case "mySkills":
         return <MySkills />;
       case "awards":
@@ -140,6 +146,9 @@ const PremiumDashboard = () => {
         return <ContactedUser />;
       case "profileSettings":
         return <PremiumSettings />;
+      case "profileShare":
+        return <ProfileShare />;
+
       default:
         return <DashboardHome />;
     }

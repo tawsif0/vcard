@@ -281,8 +281,8 @@ const BlogCreate = () => {
   }
 
   return (
-    <div className="w-full py-6 px-4 relative overflow-visible">
-      <div className="mx-auto max-w-7xl relative z-10">
+    <div className="w-full py-8 px-4 sm:px-6 lg:px-8 relative overflow-visible">
+      <div className="mx-auto relative z-10">
         <div className="text-center mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">
             Create New Blog
@@ -638,7 +638,7 @@ const BlogCreate = () => {
       </div>
 
       {/* Add custom styles for the preview content */}
-      <style jsx>{`
+      <style>{`
         .preview-content ul,
         .preview-content ol {
           margin: 0.5rem 0;

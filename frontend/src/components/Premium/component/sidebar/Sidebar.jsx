@@ -15,6 +15,7 @@ import {
   FiArrowLeft,
   FiZap,
   FiSettings,
+  FiShare2,
   FiMenu,
   FiX,
 } from "react-icons/fi";
@@ -74,6 +75,7 @@ const Sidebar = ({
       icon: <FiFileText />,
       children: [
         { name: "Work Experience", component: "workExperience" },
+        { name: "Education", component: "education" },
         { name: "My Skills", component: "mySkills" },
         { name: "Award & Achievements", component: "awards" },
         { name: "More About Me", component: "moreAboutMe" },
@@ -113,6 +115,11 @@ const Sidebar = ({
       name: "Profile Settings",
       icon: <FiSettings />,
       component: "profileSettings",
+    },
+    {
+      name: "Share Profile",
+      icon: <FiShare2 />,
+      component: "profileShare",
     },
   ];
 

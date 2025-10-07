@@ -12,11 +12,13 @@ import {
   FiPhone,
   FiExternalLink,
   FiUsers,
-  FiBriefcase as FiWork
+  FiBriefcase as FiWork,
+  FiBook
 } from "react-icons/fi";
 
 const ResumePage = () => {
   const [workExperiences, setWorkExperiences] = useState([]);
+  const [education, setEducation] = useState([]);
   const [skills, setSkills] = useState([]);
   const [awards, setAwards] = useState([]);
   const [aboutCategories, setAboutCategories] = useState([]);
@@ -30,6 +32,7 @@ const ResumePage = () => {
         setIsLoading(true);
         await Promise.all([
           fetchWorkExperiences(),
+          fetchEducation(),
           fetchSkills(),
           fetchAwards(),
           fetchAboutCategories(),
@@ -58,6 +61,22 @@ const ResumePage = () => {
       setWorkExperiences(data.workExperiences || []);
     } catch (error) {
       console.error("Error fetching work experiences:", error);
+    }
+  };
+
+  // Fetch Education
+  const fetchEducation = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/api/resume/education", {
+        headers: { "x-auth-token": token },
+      });
+      if (!response.ok) throw new Error("Failed to fetch education");
+      const data = await response.json();
+      console.log("Education API Response:", data); // Debug log
+      setEducation(data.education || []);
+    } catch (error) {
+      console.error("Error fetching education:", error);
     }
   };
 
@@ -192,17 +211,19 @@ const ResumePage = () => {
 
   // Check if any section has data - IMPROVED SKILLS CHECK
   const hasWorkExperiences = workExperiences.length > 0;
+  const hasEducation = education.length > 0;
   const hasSkills = skills && skills.length > 0;
   const hasAwards = awards.length > 0;
   const hasAboutCategories = aboutCategories.length > 0;
   const hasReferences = references.length > 0;
 
   console.log("Work Experiences:", workExperiences); // Debug log
+  console.log("Education:", education); // Debug log
   console.log("Awards:", awards); // Debug log
   console.log("References:", references); // Debug log
 
   // If no data at all
-  if (!hasWorkExperiences && !hasSkills && !hasAwards && !hasAboutCategories && !hasReferences) {
+  if (!hasWorkExperiences && !hasEducation && !hasSkills && !hasAwards && !hasAboutCategories && !hasReferences) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
         <div className="text-center text-gray-400">
@@ -330,6 +351,94 @@ const ResumePage = () => {
           </motion.section>
         )}
 
+        {/* Education Section - Added under Work Experience */}
+        {hasEducation && (
+          <motion.section
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mb-12"
+          >
+            <div className="flex items-center mb-8">
+              <div className="p-3 rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-500 mr-4">
+                <FiBook className="w-6 h-6 text-white" />
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold text-white">Education</h2>
+            </div>
+
+            <div className="grid gap-6">
+              {education.map((edu, index) => (
+                <motion.div
+                  key={edu._id || index}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700 hover:border-blue-500/50 transition-all duration-300"
+                >
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-semibold text-white mb-2">
+                        {edu.degree || "Degree Name"}
+                      </h3>
+                      <p className="text-blue-400 font-medium mb-1">
+                        {edu.university || "University Name"}
+                      </p>
+                      <div className="flex items-center text-gray-400 text-sm flex-wrap gap-2">
+                        <div className="flex items-center">
+                          <FiCalendar className="w-4 h-4 mr-1" />
+                          {formatDate(edu.startDate)} - {edu.current ? "Present" : formatDate(edu.endDate)}
+                        </div>
+                        {edu.location && (
+                          <div className="flex items-center">
+                            <FiMapPin className="w-4 h-4 mr-1" />
+                            {edu.location}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {/* Education Logo */}
+                    {edu.logo && (
+                      <div className="mt-4 md:mt-0">
+                        <img
+                          src={getImageUrl(edu.logo)}
+                          alt={edu.university || "Institution"}
+                          className="w-16 h-16 rounded-lg object-cover border-2 border-blue-500/50"
+                          onError={(e) => {
+                            console.log("Education logo failed to load:", e.target.src);
+                            e.target.style.display = 'none';
+                          }}
+                          onLoad={(e) => {
+                            console.log("Education logo loaded successfully:", e.target.src);
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Description - Handle HTML content from TinyMCE */}
+                  {edu.desc && (
+                    <div className="mt-4">
+                      <div className="text-gray-300 leading-relaxed">
+                        <div
+                          dangerouslySetInnerHTML={{ __html: edu.desc }}
+                          className="education-description"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Fallback if no description */}
+                  {!edu.desc && (
+                    <p className="text-gray-400 italic">
+                      No description provided. Add your coursework, achievements, and learning experiences.
+                    </p>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          </motion.section>
+        )}
+
         {/* Skills Section - Only show if has data */}
         {hasSkills && (
           <motion.section
@@ -339,7 +448,7 @@ const ResumePage = () => {
             className="mb-12"
           >
             <div className="flex items-center mb-8">
-              <div className="p-3 rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-500 mr-4">
+              <div className="p-3 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 mr-4">
                 <FiStar className="w-6 h-6 text-white" />
               </div>
               <h2 className="text-2xl md:text-3xl font-bold text-white">My Skills</h2>
@@ -352,11 +461,11 @@ const ResumePage = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700 hover:border-blue-500/50 transition-all duration-300"
+                  className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700 hover:border-green-500/50 transition-all duration-300"
                 >
                   {/* Category Header */}
                   <div className="flex items-center mb-6">
-                    <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center text-white font-bold text-lg mr-4">
+                    <div className="w-12 h-12 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-lg mr-4">
                       {index + 1}
                     </div>
                     <div>
@@ -379,10 +488,10 @@ const ResumePage = () => {
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: index * 0.1 + skillIndex * 0.05 }}
-                        className="bg-gray-800/30 backdrop-blur-lg rounded-xl p-4 border border-gray-600 hover:border-blue-500/50 transition-all duration-300 group"
+                        className="bg-gray-800/30 backdrop-blur-lg rounded-xl p-4 border border-gray-600 hover:border-green-500/50 transition-all duration-300 group"
                       >
                         <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-md font-semibold text-white group-hover:text-blue-400 transition-colors">
+                          <h4 className="text-md font-semibold text-white group-hover:text-green-400 transition-colors">
                             {skill.name || skill.title || 'Skill'}
                           </h4>
                           {skill.image && (
@@ -537,7 +646,7 @@ const ResumePage = () => {
             className="mb-12"
           >
             <div className="flex items-center mb-8">
-              <div className="p-3 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 mr-4">
+              <div className="p-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-500 mr-4">
                 <FiUser className="w-6 h-6 text-white" />
               </div>
               <h2 className="text-2xl md:text-3xl font-bold text-white">More About Me</h2>
@@ -554,20 +663,20 @@ const ResumePage = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700 hover:border-green-500/50 transition-all duration-300 group"
+                    className="bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700 hover:border-indigo-500/50 transition-all duration-300 group"
                   >
                     <div className="flex items-center mb-4">
                       {category.image && (
                         <img
                           src={getImageUrl(category.image)}
                           alt={categoryName}
-                          className="w-12 h-12 rounded-lg object-cover mr-4 border-2 border-green-500/50"
+                          className="w-12 h-12 rounded-lg object-cover mr-4 border-2 border-indigo-500/50"
                           onError={(e) => {
                             e.target.style.display = 'none';
                           }}
                         />
                       )}
-                      <h3 className="text-lg font-semibold text-white group-hover:text-green-400 transition-colors">
+                      <h3 className="text-lg font-semibold text-white group-hover:text-indigo-400 transition-colors">
                         {categoryName}
                       </h3>
                     </div>
@@ -585,7 +694,7 @@ const ResumePage = () => {
                         <ul className="space-y-2">
                           {(category.items || category.subItems || category.points || category.detailsList || []).map((item, itemIndex) => (
                             <li key={itemIndex} className="flex items-start text-gray-400">
-                              <FiBookOpen className="w-4 h-4 mr-2 text-green-500 mt-1 flex-shrink-0" />
+                              <FiBookOpen className="w-4 h-4 mr-2 text-indigo-500 mt-1 flex-shrink-0" />
                               <span>{typeof item === 'string' ? item : (item.name || item.title || item.text || 'Item')}</span>
                             </li>
                           ))}
@@ -704,6 +813,8 @@ const ResumePage = () => {
 
       {/* Add custom styles for HTML content */}
       <style jsx>{`
+        .education-description ul,
+        .education-description ol,
         .award-description ul,
         .award-description ol,
         .reference-description ul,
@@ -711,37 +822,45 @@ const ResumePage = () => {
           margin: 0.5rem 0;
           padding-left: 1.5rem;
         }
+        .education-description li,
         .award-description li,
         .reference-description li {
           margin-bottom: 0.25rem;
           list-style-position: outside;
         }
+        .education-description ul li,
         .award-description ul li,
         .reference-description ul li {
           list-style-type: disc;
         }
+        .education-description ol li,
         .award-description ol li,
         .reference-description ol li {
           list-style-type: decimal;
         }
+        .education-description strong,
         .award-description strong,
         .reference-description strong {
           font-weight: bold;
           color: #f9fafb;
         }
+        .education-description em,
         .award-description em,
         .reference-description em {
           font-style: italic;
         }
+        .education-description u,
         .award-description u,
         .reference-description u {
           text-decoration: underline;
         }
+        .education-description a,
         .award-description a,
         .reference-description a {
           color: #60a5fa;
           text-decoration: underline;
         }
+        .education-description a:hover,
         .award-description a:hover,
         .reference-description a:hover {
           color: #93c5fd;

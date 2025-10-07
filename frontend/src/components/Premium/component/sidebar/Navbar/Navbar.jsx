@@ -507,7 +507,7 @@ const Navbar = () => {
       </div>
 
       {/* Add custom styles for the preview content */}
-      <style jsx>{`
+      <style>{`
         .preview-content ul,
         .preview-content ol {
           margin: 0.5rem 0;
