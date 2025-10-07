@@ -128,6 +128,42 @@ const aboutCategorySchema = new mongoose.Schema({
 }, { timestamps: true });
 
 
+const educationSchema = new mongoose.Schema({
+  degree: {
+    type: String,
+    default: ""
+  },
+  university: {
+    type: String,
+    default: ""
+  },
+  location: {
+    type: String,
+    default: ""
+  },
+  startDate: {
+    type: String,
+    default: ""
+  },
+  endDate: {
+    type: String,
+    default: ""
+  },
+  current: {
+    type: Boolean,
+    default: false
+  },
+  logo: {
+    type: String,
+    default: ""
+  },
+  desc: {
+    type: String,
+    default: ""
+  }
+}, { timestamps: true });
+
+
 const resumeSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -137,6 +173,7 @@ const resumeSchema = new mongoose.Schema({
   },
   skills: [skillCategorySchema],
   workExperiences: [workExperienceSchema],
+  education: [educationSchema],
   awards: [awardSchema],
   references: [referenceSchema],
   aboutCategories: [aboutCategorySchema],

@@ -38,7 +38,10 @@ import ModifyBlog from "../sidebar/Blog/ModifyBlog";
 import Blog from "../sidebar/Blog/BlogPage";
 import BlogPage from "../sidebar/Blog/BlogPage";
 import Navbar from "../sidebar/Navbar/Navbar";
+
 import ProfileShare from "../sidebar/ProfileShare";
+
+import Education from "../sidebar/Resume/Education";
 
 const PremiumDashboard = () => {
   const [activeView, setActiveView] = useState(() => {
@@ -106,6 +109,8 @@ const PremiumDashboard = () => {
       // Resume Section
       case "workExperience":
         return <WorkExperience />;
+      case "education":
+        return <Education />;
       case "mySkills":
         return <MySkills />;
       case "awards":

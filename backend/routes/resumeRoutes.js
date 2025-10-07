@@ -82,6 +82,7 @@ router.get("/", auth, async (req, res) => {
         user: req.user.id,
         skills: [],
         workExperiences: [],
+        education: [],
         awards: [],
         references: [],
         aboutCategories: [],
@@ -214,6 +215,122 @@ router.delete("/work-experiences/:expId", auth, async (req, res) => {
   }
 });
 
+
+
+
+
+// ========== EDUCATION CRUD ==========
+
+// GET education
+router.get("/education", auth, async (req, res) => {
+  try {
+    const resume = await Resume.findOne({ user: req.user.id });
+    return res.json({ education: resume?.education || [] });
+  } catch (err) {
+    console.error("Error fetching education:", err);
+    return sendError(res);
+  }
+});
+
+// POST education - Add new education
+router.post("/education", auth, async (req, res) => {
+  try {
+    const { degree, university, location, startDate, endDate, current, logo, desc } = req.body;
+
+    let resume = await Resume.findOne({ user: req.user.id });
+    if (!resume) {
+      resume = new Resume({ user: req.user.id });
+    }
+
+    const newEducation = {
+      degree: degree || "",
+      university: university || "",
+      location: location || "",
+      startDate: startDate || new Date().toISOString().slice(0, 7),
+      endDate: endDate || "",
+      current: current || false,
+      logo: logo || "",
+      desc: desc || ""
+    };
+
+    resume.education.push(newEducation);
+    await resume.save();
+
+    // Get the newly created education with MongoDB _id
+    const savedEducation = resume.education[resume.education.length - 1];
+    
+    return res.json({ 
+      msg: "Education added successfully", 
+      education: savedEducation  // Return the saved education with _id
+    });
+  } catch (err) {
+    console.error("Error adding education:", err);
+    return sendError(res);
+  }
+});
+
+// PUT education - Update specific education
+router.put("/education/:eduId", auth, async (req, res) => {
+  try {
+    const { eduId } = req.params;
+    const updateData = req.body;
+
+    const resume = await Resume.findOne({ user: req.user.id });
+    if (!resume) return sendError(res, 404, "Resume not found");
+
+    const education = resume.education.id(eduId);
+    if (!education) return sendError(res, 404, "Education not found");
+
+    // Update only provided fields
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] !== undefined) {
+        education[key] = updateData[key];
+      }
+    });
+
+    await resume.save();
+
+    // Return the updated education
+    const updatedEducation = resume.education.id(eduId);
+    
+    return res.json({ 
+      msg: "Education updated successfully", 
+      education: updatedEducation 
+    });
+  } catch (err) {
+    console.error("Error updating education:", err);
+    return sendError(res);
+  }
+});
+
+// DELETE education - Remove education
+router.delete("/education/:eduId", auth, async (req, res) => {
+  try {
+    const { eduId } = req.params;
+
+    const resume = await Resume.findOne({ user: req.user.id });
+    if (!resume) return sendError(res, 404, "Resume not found");
+
+    const education = resume.education.id(eduId);
+    if (!education) return sendError(res, 404, "Education not found");
+
+    // Delete associated logo file if exists
+    if (education.logo && education.logo.startsWith('/uploads/resume/')) {
+      const logoPath = path.join(__dirname, '..', education.logo);
+      if (fs.existsSync(logoPath)) {
+        fs.unlinkSync(logoPath);
+      }
+    }
+
+    resume.education.pull({ _id: eduId });
+    await resume.save();
+
+    return res.json({ msg: "Education deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting education:", err);
+    return sendError(res);
+  }
+});
 // ========== SKILLS CRUD ==========
 router.get("/skills", auth, async (req, res) => {
   try {
@@ -665,5 +782,8 @@ router.get("/public/:userId", async (req, res) => {
     return sendError(res);
   }
 });
+
+
+
 
 module.exports = router;
