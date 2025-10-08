@@ -22,7 +22,7 @@ const Navigation = () => {
     <div className={positionClass}>
       <div className="flex space-x-4">
         {/* Home Icon - Hide on Home page */}
-        {!hideCurrentPageIcon("/") && (
+        {!hideCurrentPageIcon("/home") && (
           <Link
             to="/home"
             className="group flex items-center justify-center w-16 h-16 bg-green-500 rounded-full text-white 

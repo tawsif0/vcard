@@ -10,33 +10,29 @@ import AuthContext from "./context/AuthContext";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import AdminPanel from "./components/AdminPanel";
-import CardViewer from "./components/CardViewer";
 import Dashboard from "./components/Dashboard";
 import Navbar from "./components/Navbar";
 import { Toaster } from "react-hot-toast";
 import { FiCheckCircle, FiXCircle, FiLoader } from "react-icons/fi";
 import PremiumDashboard from "./components/Premium/component/Dashboard/PremiumDashboard";
+import ProfileRouteHandler from "./context/ProfileRouteHandler";
 
-//Testing
-import Home from "./components/Premium/view/pages/Home";
-import About from "./components/Premium/view/pages/About/About";
-import Resume from "./components/Premium/view/pages/Resume/Resume";
-import Contact from "./components/Premium/view/pages/Contact";
-//import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Portfolio from "./components/Premium/view/pages/Portfolio";
-import Blog from "./components/Premium/view/pages/Blog";
-//
+// Component to handle profile routes
 
 function App() {
   const { user } = useContext(AuthContext);
   const location = useLocation();
 
-  // Detect if the route matches /profile/:userId
   const isCardViewerRoute = /^\/profile\/[^/]+$/.test(location.pathname);
+  const isPremiumProfileRoute = location.pathname.match(
+    /^\/profile\/[^/]+\/(home|about|resume|contact|portfolio|blog)/
+  );
+
   const hideNavbar =
     isCardViewerRoute ||
     location.pathname.includes("premium-dashboard") ||
-    (location.pathname === "/dashboard" && user?.isPremium);
+    (location.pathname === "/dashboard" && user?.isPremium) ||
+    isPremiumProfileRoute;
 
   const getDashboardComponent = () => {
     if (user?.role === "admin") {
@@ -47,9 +43,9 @@ function App() {
       return <Dashboard />;
     }
   };
+
   return (
     <div className="App">
-      {/* Show Navbar only if not on CardViewer route */}
       {!hideNavbar && <Navbar />}
       <Toaster
         position="top-center"
@@ -156,16 +152,7 @@ function App() {
               )
             }
           />
-          {/* Public route: show CardViewer without navbar */}
-          <Route path="/profile/:userId" element={<CardViewer />} />
-          {/*testing*/}
-          <Route path="/home" element={<Home />} /> */
-          <Route path="/about" element={<About />} />
-          <Route path="/resume" element={<Resume />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/portfolio" element={<Portfolio />} />
-          <Route path="/blog" element={<Blog />} />
-          {/*testing*/}
+          <Route path="/profile/:userId/*" element={<ProfileRouteHandler />} />
         </Routes>
       </div>
     </div>
