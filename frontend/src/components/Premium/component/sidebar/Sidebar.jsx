@@ -12,7 +12,7 @@ import {
   FiChevronLeft,
   FiChevronUp,
   FiLogOut,
-  FiArrowLeft,
+  FiAirplay,  
   FiZap,
   FiSettings,
   FiShare2,
@@ -45,18 +45,16 @@ const Sidebar = ({
   }, []);
 
   const navItems = [
-    {
-      name: "Navbar",
-      icon: <FiMenu />,
-      children: [{ name: "Navbar", component: "navbar" }],
-    },
+    { name: "Dashboard", icon: <FiHome />, component: "DashboardHome" },
     {
       name: "Home",
-      icon: <FiHome />,
-      children: [
-        { name: "Dashboard", component: "DashboardHome" },
-        { name: "Home Card", component: "homeCard" },
-      ],
+      icon: <FiAirplay />,
+      children: [{ name: "Home Card", component: "homeCard" }],
+    },
+    {
+      name: "Navbar Modify",
+      icon: <FiMenu />,
+      children: [{ name: "Navbar Element", component: "navbar" }],
     },
     {
       name: "About",
