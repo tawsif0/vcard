@@ -11,6 +11,7 @@ const ContactedUser = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [contactedUsers, setContactedUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -18,6 +19,38 @@ const ContactedUser = () => {
     hasNext: false,
     hasPrev: false
   });
+
+  // Fetch current user data and contacted users
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const userData = localStorage.getItem("user");
+        
+        if (userData) {
+          setCurrentUser(JSON.parse(userData));
+        } else if (token) {
+          // Fetch user data from API
+          const response = await fetch("http://localhost:5000/api/auth/verify", {
+            headers: {
+              "x-auth-token": token,
+            },
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              setCurrentUser(data.user);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching current user:", error);
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
 
   // Fetch contacted users from backend
   const fetchContactedUsers = async (page = 1) => {
@@ -51,7 +84,6 @@ const ContactedUser = () => {
     } catch (error) {
       console.error("Error fetching contacted users:", error);
       toast.error("Failed to load messages");
-      // Fallback to empty array
       setContactedUsers([]);
     } finally {
       setIsLoading(false);
@@ -79,13 +111,25 @@ const ContactedUser = () => {
     
     try {
       const token = localStorage.getItem("token");
+      
+      // Prepare email data - email sent from Arbeit Technology but shows admin user as sender
+      const emailData = {
+        replyMessage: replyText,
+        toEmail: selectedMessage.email,
+        toName: selectedMessage.name,
+        fromName: currentUser?.name || "Admin",
+        fromEmail: currentUser?.email || "admin@example.com",
+        originalMessage: selectedMessage.message,
+        originalSubject: selectedMessage.subject || "Contact Message"
+      };
+
       const response = await fetch(`http://localhost:5000/api/contact/${selectedMessage._id}/reply`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "x-auth-token": token,
         },
-        body: JSON.stringify({ replyMessage: replyText }),
+        body: JSON.stringify(emailData),
       });
 
       const data = await response.json();
@@ -101,7 +145,11 @@ const ContactedUser = () => {
       fetchContactedUsers(pagination.currentPage);
       
       // Update selected message status
-      setSelectedMessage(prev => prev ? { ...prev, status: "replied" } : null);
+      setSelectedMessage(prev => prev ? { 
+        ...prev, 
+        status: "replied", 
+        replyMessage: replyText 
+      } : null);
       
     } catch (error) {
       console.error("Error sending reply:", error);
@@ -132,7 +180,6 @@ const ContactedUser = () => {
       toast.success("Marked as replied");
       fetchContactedUsers(pagination.currentPage);
       
-      // Update selected message if it's the one being updated
       if (selectedMessage && selectedMessage._id === userId) {
         setSelectedMessage(prev => prev ? { ...prev, status: "replied" } : null);
       }
@@ -186,10 +233,8 @@ const ContactedUser = () => {
 
       toast.success("Message deleted successfully");
       
-      // Remove from local state
       setContactedUsers(prev => prev.filter(user => user._id !== userId));
       
-      // Clear selected message if it was deleted
       if (selectedMessage && selectedMessage._id === userId) {
         setSelectedMessage(null);
       }
@@ -259,9 +304,9 @@ const ContactedUser = () => {
   }
 
   return (
-     <div className="w-full min-h-screen py-4 px-2 sm:px-4 lg:px-8 relative overflow-visible">
+    <div className="w-full min-h-screen py-4 px-2 sm:px-4 lg:px-8 relative overflow-visible">
       <div className="w-full mx-auto relative z-10">
-       <div className="text-center mb-5 sm:mb-8">
+        <div className="text-center mb-5 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-3">
             Contacted Users
           </h1>
@@ -282,7 +327,7 @@ const ContactedUser = () => {
                   </div>
                   <div>
                     <p className="text-sm font-[700] text-white truncate">
-                      Contact Messages
+                      {currentUser?.name || "Admin"}'s Messages
                     </p>
                     <p className="text-xs text-gray-400 font-[600] truncate mt-0.5">
                       {pagination.totalMessages} messages found
@@ -500,24 +545,34 @@ const ContactedUser = () => {
                     <div className="bg-gradient-to-r from-purple-600/90 to-blue-600/90 p-6 text-white border-b border-purple-400/30">
                       <div className="flex items-center gap-2">
                         <FiSend className="w-5 h-5" />
-                        <h3 className="text-lg font-bold">Send Reply</h3>
+                        <h3 className="text-lg font-bold">Send Email Reply</h3>
                       </div>
+                      <p className="text-purple-200 text-sm mt-1">
+                        This reply will be sent from Arbeit Technology on behalf of {currentUser?.name || "Admin"}
+                      </p>
                     </div>
                     
                     <div className="p-6">
                       <form onSubmit={handleReply} className="space-y-4">
                         <div className="space-y-2">
                           <label className="block text-sm font-medium text-gray-300">
-                            Your Reply *
+                            Your Reply Message *
                           </label>
                           <textarea
                             value={replyText}
                             onChange={(e) => setReplyText(e.target.value)}
-                            placeholder="Type your reply message here..."
+                            placeholder={`Type your reply to ${selectedMessage.name}...`}
                             rows="6"
                             className="w-full px-4 py-3 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-xl text-white focus:border-purple-500 transition placeholder-gray-500 resize-none"
                             required
                           />
+                        </div>
+
+                        <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-700/30">
+                          <p className="text-blue-300 text-sm">
+                            <strong>Note:</strong> This email will be sent from <strong>Arbeit Technology</strong> 
+                            but will show <strong>{currentUser?.name || "Admin"}</strong> as the sender.
+                          </p>
                         </div>
 
                         <button
@@ -530,12 +585,12 @@ const ContactedUser = () => {
                             {isSubmitting ? (
                               <>
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                Sending Reply...
+                                Sending Email...
                               </>
                             ) : (
                               <>
                                 <FiSend className="w-5 h-5" />
-                                Send Reply
+                                Send Email Reply
                               </>
                             )}
                           </span>

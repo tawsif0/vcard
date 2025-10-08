@@ -1,11 +1,144 @@
 const router = require("express").Router();
 const Contact = require("../models/Contact");
 const { auth } = require("../middlewares/auth");
+const nodemailer = require("nodemailer");
 
 // Helper function for error handling
 function sendError(res, status = 500, msg = "Server error") {
   return res.status(status).json({ msg });
 }
+
+// ========== SEND REPLY ==========
+router.post("/:id/reply", auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { replyMessage, toEmail, toName, fromName, fromEmail, originalMessage, originalSubject } = req.body;
+
+    console.log("📧 Starting email send process...");
+    console.log("To:", toEmail);
+
+    if (!replyMessage || replyMessage.trim() === "") {
+      return sendError(res, 400, "Reply message is required");
+    }
+
+    const message = await Contact.findById(id);
+    if (!message) {
+      return sendError(res, 404, "Message not found");
+    }
+
+    // Send email to the original message sender
+    let emailSent = false;
+    let emailError = null;
+
+    try {
+      // FIX: Use createTransport (without 'er')
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: "arbeittechnology@gmail.com",
+          pass: "fgtg sbxq hyrr phby",
+        },
+      });
+
+      // Test the connection
+      await transporter.verify();
+      console.log("✅ SMTP connection is ready");
+
+      const emailSubject = originalSubject 
+        ? `Re: ${originalSubject}`
+        : "Re: Your Contact Message";
+
+      const mailOptions = {
+        from: '"Arbeit Technology" <arbeittechnology@gmail.com>',
+        to: toEmail,
+        subject: emailSubject,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #667eea; color: white; padding: 20px; text-align: center;">
+              <h1 style="margin: 0; font-size: 24px;">Arbeit Technology</h1>
+              <p style="margin: 5px 0 0 0; opacity: 0.9;">Response to Your Message</p>
+            </div>
+            
+            <div style="padding: 20px;">
+              <p>Dear <strong>${toName}</strong>,</p>
+              <p>Thank you for contacting Arbeit Technology. Here is our response to your message:</p>
+              
+              <div style="background: #f8f9fa; padding: 15px; border-left: 4px solid #667eea; margin: 15px 0;">
+                <h3 style="margin-top: 0; color: #667eea;">Our Response:</h3>
+                <p>${replyMessage.replace(/\n/g, '<br>')}</p>
+              </div>
+              
+              <div style="background: #f1f3f4; padding: 12px; border-left: 4px solid #ccc; margin: 15px 0;">
+                <h4 style="margin-top: 0; color: #666;">Your Original Message:</h4>
+                <p><strong>Subject:</strong> ${originalSubject || 'No Subject'}</p>
+                <p><strong>Message:</strong></p>
+                <p>${originalMessage.replace(/\n/g, '<br>')}</p>
+              </div>
+              
+              <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+                <p>Best regards,</p>
+                <p><strong>${fromName}</strong><br>
+                Arbeit Technology Team<br>
+                Email: ${fromEmail}</p>
+              </div>
+            </div>
+            
+            <div style="text-align: center; padding: 15px; background: #f5f5f5; color: #666; font-size: 11px;">
+              <p>This email was sent in response to your contact form submission.</p>
+              <p>&copy; 2024 Arbeit Technology. All rights reserved.</p>
+            </div>
+          </div>
+        `,
+        replyTo: fromEmail
+      };
+
+      console.log("📤 Attempting to send email...");
+      const emailResult = await transporter.sendMail(mailOptions);
+      
+      console.log("✅ EMAIL SENT SUCCESSFULLY!");
+      console.log("Message ID:", emailResult.messageId);
+      
+      emailSent = true;
+
+    } catch (emailErr) {
+      console.error("❌ EMAIL SENDING FAILED:");
+      console.error("Error:", emailErr.message);
+      
+      emailError = emailErr.message;
+      emailSent = false;
+    }
+
+    // Update message with reply
+    message.status = "replied";
+    message.repliedAt = new Date();
+    message.replyMessage = replyMessage.trim();
+
+    await message.save();
+
+    const responseMsg = emailSent 
+      ? "Reply sent successfully and email delivered!"
+      : `Reply saved successfully! (Email failed: ${emailError})`;
+
+    return res.json({ 
+      msg: responseMsg,
+      emailSent: emailSent,
+      message: {
+        id: message._id,
+        status: message.status,
+        repliedAt: message.repliedAt
+      }
+    });
+
+  } catch (err) {
+    console.error("Error sending reply:", err);
+    
+    if (err.kind === 'ObjectId') {
+      return sendError(res, 404, "Message not found");
+    }
+    
+    return sendError(res);
+  }
+});
 
 // ========== SUBMIT CONTACT FORM ==========
 router.post("/", async (req, res) => {
@@ -138,48 +271,6 @@ router.get("/:id", auth, async (req, res) => {
 
   } catch (err) {
     console.error("Error fetching message:", err);
-    
-    if (err.kind === 'ObjectId') {
-      return sendError(res, 404, "Message not found");
-    }
-    
-    return sendError(res);
-  }
-});
-
-// ========== SEND REPLY ==========
-router.post("/:id/reply", auth, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { replyMessage } = req.body;
-
-    if (!replyMessage || replyMessage.trim() === "") {
-      return sendError(res, 400, "Reply message is required");
-    }
-
-    const message = await Contact.findById(id);
-    if (!message) {
-      return sendError(res, 404, "Message not found");
-    }
-
-    // Update message with reply
-    message.status = "replied";
-    message.repliedAt = new Date();
-    message.replyMessage = replyMessage.trim();
-
-    await message.save();
-
-    return res.json({ 
-      msg: "Reply sent successfully!",
-      message: {
-        id: message._id,
-        status: message.status,
-        repliedAt: message.repliedAt
-      }
-    });
-
-  } catch (err) {
-    console.error("Error sending reply:", err);
     
     if (err.kind === 'ObjectId') {
       return sendError(res, 404, "Message not found");
