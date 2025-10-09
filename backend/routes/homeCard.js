@@ -17,8 +17,8 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    const originalName = path.parse(file.originalname).name; // Get original file name without extension
-    const ext = path.extname(file.originalname); // Get file extension
+    const originalName = path.parse(file.originalname).name;
+    const ext = path.extname(file.originalname);
     let uniqueSuffix = originalName;
 
     let count = 1;
@@ -27,11 +27,11 @@ const storage = multer.diskStorage({
         path.join("uploads/homecard-profile-pictures", uniqueSuffix + ext)
       )
     ) {
-      uniqueSuffix = originalName + `(${count})`; // Append (1), (2), etc.
+      uniqueSuffix = originalName + `(${count})`;
       count++;
     }
 
-    cb(null, uniqueSuffix + ext); // Save with the unique name
+    cb(null, uniqueSuffix + ext);
   },
 });
 
@@ -58,7 +58,6 @@ router.get("/my-homecard", auth, async (req, res) => {
       return res.status(401).json({ message: "Unauthorized: User ID missing" });
     }
 
-    // Fetch homeCard with populated user details
     const homeCard = await HomeCard.findOne({ userId: req.user.id }).populate(
       "userId",
       "name email"
@@ -91,10 +90,16 @@ router.put(
   upload.single("profilePicture"),
   async (req, res) => {
     try {
-      const { template, fullName, designation, city, socialMedias, showImage } =
-        req.body;
+      const {
+        template,
+        fullName,
+        designation,
+        city,
+        socialMedias,
+        showImage,
+        templateData,
+      } = req.body;
 
-      // Parse socialMedias if it's a string
       let parsedSocialMedias = [];
       if (socialMedias) {
         parsedSocialMedias =
@@ -102,22 +107,24 @@ router.put(
             ? JSON.parse(socialMedias)
             : socialMedias;
       }
-
-      // Check if home card already exists
+      let parsedTemplateData = {};
+      if (templateData) {
+        parsedTemplateData =
+          typeof templateData === "string"
+            ? JSON.parse(templateData)
+            : templateData;
+      }
       let homeCard = await HomeCard.findOne({ userId: req.user.id });
 
       let profilePicturePath = homeCard?.profileData?.profilePicture;
 
-      // Handle profile picture upload
       if (req.file) {
-        // Delete old profile picture if exists
         if (profilePicturePath && fs.existsSync(profilePicturePath)) {
           fs.unlinkSync(profilePicturePath);
         }
         profilePicturePath = req.file.path;
       }
 
-      // Handle profile picture removal
       if (req.body.removeProfilePicture === "true" && profilePicturePath) {
         if (fs.existsSync(profilePicturePath)) {
           fs.unlinkSync(profilePicturePath);
@@ -128,6 +135,7 @@ router.put(
       const homeCardData = {
         userId: req.user.id,
         template: template || "influencer",
+        templateData: parsedTemplateData,
         profileData: {
           fullName,
           designation,
@@ -139,14 +147,12 @@ router.put(
       };
 
       if (homeCard) {
-        // Update existing home card
         homeCard = await HomeCard.findOneAndUpdate(
           { userId: req.user.id },
           homeCardData,
           { new: true, runValidators: true }
         );
       } else {
-        // Create new home card
         homeCard = new HomeCard(homeCardData);
         await homeCard.save();
       }
@@ -165,40 +171,7 @@ router.put(
   }
 );
 
-// Delete home card
-router.delete("/my-homecard", auth, async (req, res) => {
-  try {
-    const homeCard = await HomeCard.findOne({ userId: req.user.id });
-
-    if (!homeCard) {
-      return res.status(404).json({
-        message: "Home card not found",
-      });
-    }
-
-    // Delete profile picture file if exists
-    if (homeCard.profileData.profilePicture) {
-      const imagePath = homeCard.profileData.profilePicture;
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-      }
-    }
-
-    await HomeCard.findOneAndDelete({ userId: req.user.id });
-
-    res.json({
-      message: "Home card deleted successfully",
-    });
-  } catch (err) {
-    console.error("Error deleting home card:", err);
-    res.status(500).json({
-      message: "Server error",
-      error: err.message,
-    });
-  }
-});
-
-// Get public home card (for sharing)
+// Get public home card (for QR code navigation)
 router.get("/public/:userId", async (req, res) => {
   try {
     const homeCard = await HomeCard.findOne({
@@ -212,7 +185,6 @@ router.get("/public/:userId", async (req, res) => {
       });
     }
 
-    // Construct profile picture URL
     let profilePictureUrl = null;
     if (homeCard.profileData.profilePicture) {
       profilePictureUrl = `${req.protocol}://${req.get("host")}/${
@@ -222,11 +194,12 @@ router.get("/public/:userId", async (req, res) => {
 
     const publicHomeCard = {
       template: homeCard.template,
+      templateData: homeCard.templateData,
       profileData: {
         fullName: homeCard.profileData.fullName,
         designation: homeCard.profileData.designation,
         city: homeCard.profileData.city,
-        profilePicture: profilePictureUrl, // <-- Use full URL here
+        profilePicture: profilePictureUrl,
         socialMedias: homeCard.profileData.socialMedias,
       },
       showImage: homeCard.showImage,
@@ -249,7 +222,7 @@ router.get("/public/:userId", async (req, res) => {
   }
 });
 
-// Get all templates (for dropdown selection)
+// Get all templates
 router.get("/templates", auth, async (req, res) => {
   try {
     const templates = [

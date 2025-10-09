@@ -11,6 +11,7 @@ const navbarRoutes = require("./routes/navbar");
 const resumeRoutes = require("./routes/resumeRoutes");
 const portfolioRoutes = require("./routes/portfolioRoutes");
 const homeCardRoutes = require("./routes/homeCard");
+const profileShareRoutes = require("./routes/profileShare");
 const cors = require("cors");
 const passwordResetRouter = require("./routes/passwordReset");
 const app = express();
@@ -34,6 +35,7 @@ app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/blog-categories", blogCategoryRoutes);
 app.use("/api/password-reset", passwordResetRouter);
 app.use("/api/homeCard", homeCardRoutes);
+app.use("/api/profile-share", profileShareRoutes);
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 const PORT = process.env.PORT || 5000;

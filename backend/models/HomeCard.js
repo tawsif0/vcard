@@ -25,6 +25,10 @@ const homeCardSchema = new mongoose.Schema(
       ],
       default: "influencer",
     },
+    templateData: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
     profileData: {
       fullName: String,
       designation: String,
