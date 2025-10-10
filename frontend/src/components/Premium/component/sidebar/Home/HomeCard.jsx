@@ -38,7 +38,13 @@ import Modal from "react-modal";
 Modal.setAppElement("#root");
 
 // Image Cropper Component
-const ImageCropper = ({ isOpen, onClose, onCropComplete, aspect = 1 }) => {
+const ImageCropper = ({
+  isOpen,
+  onClose,
+  onCropComplete,
+  aspect = 1,
+  selectedFile,
+}) => {
   const [src, setSrc] = useState(null);
   const [image, setImage] = useState(null);
   const [crop, setCrop] = useState({
@@ -48,19 +54,18 @@ const ImageCropper = ({ isOpen, onClose, onCropComplete, aspect = 1 }) => {
   });
   const [completedCrop, setCompletedCrop] = useState(null);
   const imgRef = useRef(null);
-  const fileInputRef = useRef(null);
 
-  const handleFileChange = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
+  // Auto-load the selected file when modal opens
+  useEffect(() => {
+    if (isOpen && selectedFile) {
       const reader = new FileReader();
       reader.addEventListener("load", () => {
         setSrc(reader.result);
         setCrop({ unit: "%", width: 50, aspect });
       });
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(selectedFile);
     }
-  };
+  }, [isOpen, selectedFile, aspect]);
 
   const onImageLoad = (img) => {
     setImage(img);
@@ -192,23 +197,11 @@ const ImageCropper = ({ isOpen, onClose, onCropComplete, aspect = 1 }) => {
 
         {!src ? (
           <div className="border-2 border-dashed border-gray-600 rounded-xl p-12 text-center">
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              accept="image/*"
-              className="hidden"
-            />
             <div className="text-gray-400 mb-4">
               <FiZoomIn className="w-12 h-12 mx-auto" />
             </div>
-            <p className="text-gray-300 mb-4">Select an image to crop</p>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              Choose Image
-            </button>
+            <p className="text-gray-300 mb-4">Loading image...</p>
+            <div className="animate-pulse">Please wait</div>
           </div>
         ) : (
           <>
@@ -254,12 +247,6 @@ const ImageCropper = ({ isOpen, onClose, onCropComplete, aspect = 1 }) => {
                 >
                   <FiZoomIn className="w-5 h-5 transform rotate-180" />
                 </button>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="px-4 py-2 bg-gray-800 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
-                >
-                  Change Image
-                </button>
               </div>
 
               <div className="flex gap-2">
@@ -301,6 +288,7 @@ const HomeCard = ({ user }) => {
   const [showImage, setShowImage] = useState(true);
   const [saving, setSaving] = useState(false);
   const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null); // NEW: Store the selected file
 
   const socialMediaOptions = [
     {
@@ -436,6 +424,9 @@ const HomeCard = ({ user }) => {
         toast.error("Image size should be less than 5MB");
         return;
       }
+
+      // Store the selected file and open crop modal
+      setSelectedFile(file);
       setCropModalOpen(true);
     }
   };
@@ -452,6 +443,9 @@ const HomeCard = ({ user }) => {
       profilePicture: croppedImageUrl,
       profilePictureFile: croppedFile,
     });
+
+    // Clear the selected file after cropping
+    setSelectedFile(null);
   };
 
   const removeProfilePicture = () => {
@@ -465,6 +459,7 @@ const HomeCard = ({ user }) => {
       profilePictureFile: null,
     });
     setCropModalOpen(false);
+    setSelectedFile(null);
   };
 
   useEffect(() => {
@@ -1599,6 +1594,7 @@ const HomeCard = ({ user }) => {
         onClose={() => setCropModalOpen(false)}
         onCropComplete={handleCropComplete}
         aspect={1} // 1:1 ratio for circular profile pictures
+        selectedFile={selectedFile} // NEW: Pass the selected file
       />
     </div>
   );
