@@ -6,7 +6,7 @@ const homeCardSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      unique: true,
+      unique: true
     },
     template: {
       type: String,
@@ -17,17 +17,16 @@ const homeCardSchema = new mongoose.Schema(
         "executive",
         "minimalist",
         "creative",
-        "glass",
         "neon",
         "cyberpunk",
         "luxury",
-        "minimal",
+        "minimal"
       ],
-      default: "influencer",
+      default: "influencer"
     },
     templateData: {
       type: mongoose.Schema.Types.Mixed,
-      default: {},
+      default: {}
     },
     profileData: {
       fullName: String,
@@ -37,25 +36,22 @@ const homeCardSchema = new mongoose.Schema(
       socialMedias: [
         {
           platform: String,
-          url: String,
-        },
-      ],
+          url: String
+        }
+      ]
     },
     showImage: {
       type: Boolean,
-      default: true,
+      default: true
     },
     isActive: {
       type: Boolean,
-      default: true,
-    },
+      default: true
+    }
   },
   {
-    timestamps: true,
+    timestamps: true
   }
 );
-
-// Index for faster queries
-// homeCardSchema.index({ userId: 1 });
 
 module.exports = mongoose.model("HomeCard", homeCardSchema);

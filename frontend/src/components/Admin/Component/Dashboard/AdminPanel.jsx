@@ -9,7 +9,7 @@ import {
   FiCalendar,
   FiMail,
   FiUser,
-  FiSearch,
+  FiSearch
 } from "react-icons/fi";
 
 const AdminPanel = () => {
@@ -24,8 +24,8 @@ const AdminPanel = () => {
         const token = localStorage.getItem("token");
         const response = await fetch("http://localhost:5000/api/admin/users", {
           headers: {
-            "x-auth-token": token,
-          },
+            "x-auth-token": token
+          }
         });
 
         if (response.ok) {

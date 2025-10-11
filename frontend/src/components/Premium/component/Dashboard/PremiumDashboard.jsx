@@ -35,9 +35,8 @@ import BlogCategory from "../sidebar/Blog/BlogCategory";
 import ModifyBlogCategory from "../sidebar/Blog/ModifyBlogCategory";
 import BlogCreate from "../sidebar/Blog/BlogCreate";
 import ModifyBlog from "../sidebar/Blog/ModifyBlog";
-import Blog from "../sidebar/Blog/BlogPage";
+
 import BlogPage from "../sidebar/Blog/BlogPage";
-import Navbar from "../sidebar/Navbar/Navbar";
 
 import ProfileShare from "../sidebar/ProfileShare";
 
@@ -87,8 +86,6 @@ const PremiumDashboard = () => {
 
     switch (currentView) {
       // Dashboard Home
-      case "navbar":
-        return <Navbar />;
       case "DashboardHome":
         return <DashboardHome />;
       case "homeCard":
@@ -246,7 +243,7 @@ const PremiumDashboard = () => {
                   left: `${Math.random() * 100}%`,
                   background: "linear-gradient(145deg, #a855f7, #6366f1)",
                   animationDuration: `${Math.random() * 10 + 15}s`,
-                  animationDelay: `${i * 2}s`,
+                  animationDelay: `${i * 2}s`
                 }}
               />
             ))}
@@ -260,7 +257,7 @@ const PremiumDashboard = () => {
       <div
         className="absolute inset-0 z-0 pointer-events-none"
         style={{
-          backgroundImage: `radial-gradient(circle 500px at 50% 100px, rgba(168,85,247,0.25), transparent)`,
+          backgroundImage: `radial-gradient(circle 500px at 50% 100px, rgba(168,85,247,0.25), transparent)`
         }}
       />
     </div>

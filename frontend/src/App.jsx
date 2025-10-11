@@ -4,18 +4,19 @@ import {
   Routes,
   Route,
   Navigate,
-  useLocation,
+  useLocation
 } from "react-router-dom";
 import AuthContext from "./context/AuthContext";
 import Login from "./components/Login";
 import Register from "./components/Register";
-import AdminPanel from "./components/AdminPanel";
-import Dashboard from "./components/Dashboard";
+
 import Navbar from "./components/Navbar";
 import { Toaster } from "react-hot-toast";
 import { FiCheckCircle, FiXCircle, FiLoader } from "react-icons/fi";
 import PremiumDashboard from "./components/Premium/component/Dashboard/PremiumDashboard";
-import ProfileRouteHandler from "./context/ProfileRouteHandler";
+import ProfileRouteHandler from "./components/Basic/ProfileRouteHandler";
+import Dashboard from "./components/Basic/Component/Dashboard/Dashboard";
+import AdminPanel from "./components/Admin/Component/Dashboard/AdminPanel";
 
 // Component to handle profile routes
 
@@ -63,47 +64,47 @@ function App() {
             fontWeight: "600",
             letterSpacing: "0.3px",
             backdropFilter: "blur(10px)",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
+            border: "1px solid rgba(255, 255, 255, 0.1)"
           },
           success: {
             style: {
               background: "linear-gradient(135deg, #28a745 0%, #34d058 100%)",
               boxShadow:
                 "0 10px 30px rgba(40, 167, 69, 0.4), 0 6px 10px rgba(52, 208, 88, 0.3)",
-              border: "1px solid rgba(255, 255, 255, 0.15)",
+              border: "1px solid rgba(255, 255, 255, 0.15)"
             },
             icon: <FiCheckCircle className="w-5 h-5" />,
             iconTheme: {
               primary: "#fff",
-              secondary: "#28a745",
-            },
+              secondary: "#28a745"
+            }
           },
           error: {
             style: {
               background: "linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)",
               boxShadow:
                 "0 10px 30px rgba(255, 107, 107, 0.4), 0 6px 10px rgba(238, 90, 82, 0.3)",
-              border: "1px solid rgba(255, 255, 255, 0.15)",
+              border: "1px solid rgba(255, 255, 255, 0.15)"
             },
             icon: <FiXCircle className="w-5 h-5" />,
             iconTheme: {
               primary: "#fff",
-              secondary: "#ff6b6b",
-            },
+              secondary: "#ff6b6b"
+            }
           },
           loading: {
             style: {
               background: "linear-gradient(135deg, #ffd89b 0%, #19547b 100%)",
               boxShadow:
                 "0 10px 30px rgba(255, 216, 155, 0.4), 0 6px 10px rgba(25, 84, 123, 0.3)",
-              border: "1px solid rgba(255, 255, 255, 0.15)",
+              border: "1px solid rgba(255, 255, 255, 0.15)"
             },
             icon: <FiLoader className="w-5 h-5 animate-spin" />,
             iconTheme: {
               primary: "#fff",
-              secondary: "#ffd89b",
-            },
-          },
+              secondary: "#ffd89b"
+            }
+          }
         }}
       />
       <div>

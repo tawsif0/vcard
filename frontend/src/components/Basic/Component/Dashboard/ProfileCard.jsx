@@ -39,7 +39,7 @@ import {
   FiTwitter,
   FiGithub,
   FiTwitch,
-  FiPocket,
+  FiPocket
 } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import { BiBuilding } from "react-icons/bi";
@@ -76,7 +76,7 @@ const ProfileCard = ({ user }) => {
     showOfficeAddress: false,
     officialPhone: "",
     companyWebsite: "",
-    socialMedias: [],
+    socialMedias: []
   });
 
   const [savedProfile, setSavedProfile] = useState({});
@@ -95,7 +95,7 @@ const ProfileCard = ({ user }) => {
     { value: "github", label: "GitHub", icon: <FiGithub /> },
     { value: "twitch", label: "Twitch", icon: <FiTwitch /> },
     { value: "pinterest", label: "Pinterest", icon: <FiPocket /> },
-    { value: "custom", label: "Custom URL", icon: <FiGlobe /> },
+    { value: "custom", label: "Custom URL", icon: <FiGlobe /> }
   ];
 
   // Fetch profile data from backend
@@ -107,8 +107,8 @@ const ProfileCard = ({ user }) => {
           `http://localhost:5000/api/profile/${user.id}`,
           {
             headers: {
-              "x-auth-token": token,
-            },
+              "x-auth-token": token
+            }
           }
         );
 
@@ -169,7 +169,7 @@ const ProfileCard = ({ user }) => {
       officialPosition: "",
       officeAddress: "",
       officialPhone: "",
-      companyWebsite: "",
+      companyWebsite: ""
     });
   };
 
@@ -178,7 +178,7 @@ const ProfileCard = ({ user }) => {
       ...profile,
       gender: e.target.value,
       avatarOption: "none",
-      avatar: "",
+      avatar: ""
     });
   };
 
@@ -201,7 +201,7 @@ const ProfileCard = ({ user }) => {
     setProfile({
       ...profile,
       avatarOption,
-      avatar: avatarUrl,
+      avatar: avatarUrl
     });
   };
 
@@ -209,7 +209,7 @@ const ProfileCard = ({ user }) => {
     setProfile({
       ...profile,
       avatarCustomUrl: e.target.value,
-      avatar: e.target.value,
+      avatar: e.target.value
     });
   };
 
@@ -241,8 +241,8 @@ const ProfileCard = ({ user }) => {
             method: "DELETE",
             headers: {
               "x-auth-token": token,
-              "Content-Type": "application/json",
-            },
+              "Content-Type": "application/json"
+            }
           }
         );
 
@@ -252,12 +252,12 @@ const ProfileCard = ({ user }) => {
 
         setProfile({
           ...profile,
-          profilePicture: null,
+          profilePicture: null
         });
 
         setSavedProfile({
           ...savedProfile,
-          profilePicture: null,
+          profilePicture: null
         });
 
         toast.success("Profile picture removed");
@@ -268,12 +268,12 @@ const ProfileCard = ({ user }) => {
     } else {
       setProfile({
         ...profile,
-        profilePicture: null,
+        profilePicture: null
       });
 
       setSavedProfile({
         ...savedProfile,
-        profilePicture: null,
+        profilePicture: null
       });
 
       toast.success("Profile picture removed");
@@ -289,7 +289,7 @@ const ProfileCard = ({ user }) => {
   const addSocialMedia = () => {
     setProfile({
       ...profile,
-      socialMedias: [...profile.socialMedias, { platform: "", url: "" }],
+      socialMedias: [...profile.socialMedias, { platform: "", url: "" }]
     });
   };
 
@@ -323,9 +323,9 @@ const ProfileCard = ({ user }) => {
         {
           method: "PUT",
           headers: {
-            "x-auth-token": token,
+            "x-auth-token": token
           },
-          body: formData,
+          body: formData
         }
       );
 
@@ -430,7 +430,7 @@ const ProfileCard = ({ user }) => {
       <div
         className="absolute inset-0 z-0"
         style={{
-          backgroundImage: `radial-gradient(circle 500px at 50% 100px, rgba(192,92,246,0.4), transparent)`,
+          backgroundImage: `radial-gradient(circle 500px at 50% 100px, rgba(192,92,246,0.4), transparent)`
         }}
       />
       <div>

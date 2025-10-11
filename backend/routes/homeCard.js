@@ -32,7 +32,7 @@ const storage = multer.diskStorage({
     }
 
     cb(null, uniqueSuffix + ext);
-  },
+  }
 });
 
 const fileFilter = (req, file, cb) => {
@@ -47,8 +47,8 @@ const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
-  },
+    fileSize: 5 * 1024 * 1024 // 5MB
+  }
 });
 
 // Get user's home card
@@ -66,19 +66,19 @@ router.get("/my-homecard", auth, async (req, res) => {
     if (!homeCard) {
       return res.status(404).json({
         message: "Home card not found",
-        homeCard: null,
+        homeCard: null
       });
     }
 
     res.json({
       message: "Home card retrieved successfully",
-      homeCard,
+      homeCard
     });
   } catch (err) {
     console.error("Error fetching home card:", err);
     res.status(500).json({
       message: "Server error",
-      error: err.message,
+      error: err.message
     });
   }
 });
@@ -97,7 +97,7 @@ router.put(
         city,
         socialMedias,
         showImage,
-        templateData,
+        templateData
       } = req.body;
 
       let parsedSocialMedias = [];
@@ -141,9 +141,9 @@ router.put(
           designation,
           city,
           profilePicture: profilePicturePath,
-          socialMedias: parsedSocialMedias,
+          socialMedias: parsedSocialMedias
         },
-        showImage: showImage !== undefined ? showImage : true,
+        showImage: showImage !== undefined ? showImage : true
       };
 
       if (homeCard) {
@@ -159,13 +159,13 @@ router.put(
 
       res.json({
         message: "Home card saved successfully",
-        homeCard,
+        homeCard
       });
     } catch (err) {
       console.error("Error saving home card:", err);
       res.status(500).json({
         message: "Server error",
-        error: err.message,
+        error: err.message
       });
     }
   }
@@ -176,12 +176,12 @@ router.get("/public/:userId", async (req, res) => {
   try {
     const homeCard = await HomeCard.findOne({
       userId: req.params.userId,
-      isActive: true,
+      isActive: true
     }).populate("userId", "name email");
 
     if (!homeCard) {
       return res.status(404).json({
-        message: "Home card not found or not active",
+        message: "Home card not found or not active"
       });
     }
 
@@ -200,24 +200,24 @@ router.get("/public/:userId", async (req, res) => {
         designation: homeCard.profileData.designation,
         city: homeCard.profileData.city,
         profilePicture: profilePictureUrl,
-        socialMedias: homeCard.profileData.socialMedias,
+        socialMedias: homeCard.profileData.socialMedias
       },
       showImage: homeCard.showImage,
       user: {
         name: homeCard.userId.name,
-        email: homeCard.userId.email,
-      },
+        email: homeCard.userId.email
+      }
     };
 
     res.json({
       message: "Home card retrieved successfully",
-      homeCard: publicHomeCard,
+      homeCard: publicHomeCard
     });
   } catch (err) {
     console.error("Error fetching public home card:", err);
     res.status(500).json({
       message: "Server error",
-      error: err.message,
+      error: err.message
     });
   }
 });
@@ -229,60 +229,59 @@ router.get("/templates", auth, async (req, res) => {
       {
         id: "influencer",
         name: "Influencer",
-        description: "Modern influencer style with animated background",
+        description: "Modern influencer style with animated background"
       },
       {
         id: "hero",
         name: "Hero",
-        description: "Clean professional hero style",
+        description: "Clean professional hero style"
       },
       {
         id: "executive",
         name: "Executive",
-        description: "Corporate executive style",
+        description: "Corporate executive style"
       },
       {
         id: "minimalist",
         name: "Minimalist",
-        description: "Simple and clean design",
+        description: "Simple and clean design"
       },
       {
         id: "creative",
         name: "Creative",
-        description: "Artistic and creative layout",
+        description: "Artistic and creative layout"
       },
-      { id: "glass", name: "Glass", description: "Glass morphism effect" },
       {
         id: "neon",
         name: "Neon Glow",
-        description: "Neon lights and glow effects",
+        description: "Neon lights and glow effects"
       },
       {
         id: "cyberpunk",
         name: "Cyberpunk",
-        description: "Futuristic cyberpunk theme",
+        description: "Futuristic cyberpunk theme"
       },
       {
         id: "luxury",
         name: "Luxury Gold",
-        description: "Premium luxury gold theme",
+        description: "Premium luxury gold theme"
       },
       {
         id: "minimal",
         name: "Minimal Dark",
-        description: "Dark minimal aesthetic",
-      },
+        description: "Dark minimal aesthetic"
+      }
     ];
 
     res.json({
       message: "Templates retrieved successfully",
-      templates,
+      templates
     });
   } catch (err) {
     console.error("Error fetching templates:", err);
     res.status(500).json({
       message: "Server error",
-      error: err.message,
+      error: err.message
     });
   }
 });

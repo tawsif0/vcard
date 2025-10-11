@@ -1,6 +1,5 @@
 import React, { useContext } from "react";
-import AuthContext from "../context/AuthContext";
-import ProfileCard from "./ProfileCard";
+
 import {
   FiUser,
   FiAward,
@@ -11,10 +10,11 @@ import {
   FiSettings,
   FiEye,
   FiUsers,
-  FiArrowLeft,
+  FiArrowLeft
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-
+import AuthContext from "../../../../context/AuthContext";
+import ProfileCard from "./ProfileCard";
 const Dashboard = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -34,7 +34,7 @@ const Dashboard = () => {
               left: `${Math.random() * 100}%`,
               background: "linear-gradient(145deg, #777, #888)",
               animationDuration: `${Math.random() * 10 + 15}s`,
-              animationDelay: `${i * 2}s`,
+              animationDelay: `${i * 2}s`
             }}
           />
         ))}
@@ -42,7 +42,7 @@ const Dashboard = () => {
       <div
         className="absolute inset-0 z-0"
         style={{
-          backgroundImage: `radial-gradient(circle 500px at 50% 100px, rgba(192,92,246,0.4), transparent)`,
+          backgroundImage: `radial-gradient(circle 500px at 50% 100px, rgba(192,92,246,0.4), transparent)`
         }}
       />
 

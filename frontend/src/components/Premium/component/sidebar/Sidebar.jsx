@@ -12,12 +12,12 @@ import {
   FiChevronLeft,
   FiChevronUp,
   FiLogOut,
-  FiAirplay,  
+  FiAirplay,
   FiZap,
   FiSettings,
   FiShare2,
   FiMenu,
-  FiX,
+  FiX
 } from "react-icons/fi";
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
@@ -28,7 +28,7 @@ const Sidebar = ({
   activeView,
   setActiveView,
   isMobileOpen,
-  setIsMobileOpen,
+  setIsMobileOpen
 }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [expandedMenus, setExpandedMenus] = useState({});
@@ -49,12 +49,7 @@ const Sidebar = ({
     {
       name: "Home",
       icon: <FiAirplay />,
-      children: [{ name: "Home Card", component: "homeCard" }],
-    },
-    {
-      name: "Navbar Modify",
-      icon: <FiMenu />,
-      children: [{ name: "Navbar Element", component: "navbar" }],
+      children: [{ name: "Home Card", component: "homeCard" }]
     },
     {
       name: "About",
@@ -65,8 +60,8 @@ const Sidebar = ({
         { name: "Testimonials", component: "testimonials" },
         { name: "Pricing Plan", component: "pricing" },
         { name: "Brand & Clients", component: "clients" },
-        { name: "About Page", component: "aboutPage" },
-      ],
+        { name: "About Page", component: "aboutPage" }
+      ]
     },
     {
       name: "Resume",
@@ -78,8 +73,8 @@ const Sidebar = ({
         { name: "Award & Achievements", component: "awards" },
         { name: "More About Me", component: "moreAboutMe" },
         { name: "References", component: "reference" },
-        { name: "Resume Page", component: "resumePage" },
-      ],
+        { name: "Resume Page", component: "resumePage" }
+      ]
     },
     {
       name: "Portfolio",
@@ -87,8 +82,8 @@ const Sidebar = ({
       children: [
         { name: "Portfolio", component: "portfolio" },
         { name: "PortFolio Category", component: "portfolioCategory" },
-        { name: "Create Portfolio", component: "createPortfolio" },
-      ],
+        { name: "Create Portfolio", component: "createPortfolio" }
+      ]
     },
     {
       name: "Blog",
@@ -98,33 +93,33 @@ const Sidebar = ({
         { name: "Modify Blog Category", component: "modifyBlogCategory" },
         { name: "Blog Create", component: "blogCreate" },
         { name: "Modify Blog", component: "modifyBlog" },
-        { name: "Blog Page", component: "blogPage" },
-      ],
+        { name: "Blog Page", component: "blogPage" }
+      ]
     },
     {
       name: "Contact",
       icon: <FiMail />,
       children: [
         { name: "Contact", component: "contact" },
-        { name: "Contacted Users", component: "contactedUsers" },
-      ],
+        { name: "Contacted Users", component: "contactedUsers" }
+      ]
     },
     {
       name: "Profile Settings",
       icon: <FiSettings />,
-      component: "profileSettings",
+      component: "profileSettings"
     },
     {
       name: "Share Profile",
       icon: <FiShare2 />,
-      component: "profileShare",
-    },
+      component: "profileShare"
+    }
   ];
 
   const toggleMenu = (menuName) => {
     setExpandedMenus((prev) => ({
       ...prev,
-      [menuName]: !prev[menuName],
+      [menuName]: !prev[menuName]
     }));
   };
 
@@ -140,6 +135,16 @@ const Sidebar = ({
   };
 
   const handleItemClick = (item) => {
+    if (!sidebarOpen && window.innerWidth >= 768) {
+      setIsOpen(true); // Always open the sidebar
+
+      if (item.children) {
+        toggleMenu(item.name); // Expand if has children
+      } else {
+        setActiveView(item.component); // Directly activate if NO children
+      }
+      return;
+    }
     if (item.children) {
       toggleMenu(item.name);
     } else {
@@ -190,7 +195,7 @@ const Sidebar = ({
         initial={false}
         animate={{
           x: window.innerWidth < 768 ? (isMobileOpen ? 0 : -300) : 0,
-          width: window.innerWidth < 768 ? 256 : isOpen ? 256 : 80,
+          width: window.innerWidth < 768 ? 256 : isOpen ? 256 : 80
         }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
         className={`bg-gradient-to-b from-gray-900 to-gray-800 h-full flex flex-col border-r border-gray-700 shadow-xl overflow-hidden fixed md:relative z-50 ${
@@ -231,7 +236,7 @@ const Sidebar = ({
               whileHover={{}}
               animate={{
                 x: isHovered ? (isOpen ? -4 : 4) : 0,
-                scale: isHovered ? 1.2 : 1,
+                scale: isHovered ? 1.2 : 1
               }}
               transition={{ type: "spring", stiffness: 300 }}
               className="cursor-pointer rounded-lg text-gray-300 transition-colors"
@@ -249,88 +254,97 @@ const Sidebar = ({
                 (item) =>
                   !(window.innerWidth < 768 && item.name === "Profile Settings")
               )
-              .map((item) => (
-                <li key={item.name}>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => handleItemClick(item)}
-                    className={`flex items-center w-full p-4 rounded-xl transition-all ${
-                      sidebarOpen
-                        ? "justify-between px-4"
-                        : "justify-center px-0"
-                    } ${
-                      activeView === item.component
-                        ? "bg-gradient-to-r from-purple-600/20 to-blue-600/20 text-white border border-purple-500/30 font-medium shadow-sm"
-                        : expandedMenus[item.name]
-                        ? "bg-gray-700 text-white"
-                        : "text-gray-300 hover:bg-gray-700"
-                    }`}
-                  >
-                    <div
-                      className={`flex items-center ${
-                        sidebarOpen ? "space-x-3" : ""
+              .map((item) => {
+                const isParentActive =
+                  item.component === activeView ||
+                  (item.children &&
+                    item.children.some(
+                      (child) => child.component === activeView
+                    ));
+
+                return (
+                  <li key={item.name}>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => handleItemClick(item)}
+                      className={`flex items-center w-full p-4 rounded-xl transition-all ${
+                        sidebarOpen
+                          ? "justify-between px-4"
+                          : "justify-center px-0"
+                      } ${
+                        isParentActive
+                          ? "bg-gradient-to-r from-purple-600/20 to-blue-600/20 text-white font-medium shadow-sm"
+                          : expandedMenus[item.name]
+                          ? "bg-gray-700 text-white"
+                          : "text-gray-300 hover:bg-gray-700"
                       }`}
                     >
-                      <span className="w-5 h-5 flex items-center justify-center">
-                        {item.icon}
-                      </span>
-                      {sidebarOpen && (
-                        <span className="capitalize font-medium text-sm md:text-base">
-                          {item.name}
+                      <div
+                        className={`flex items-center ${
+                          sidebarOpen ? "space-x-3" : ""
+                        }`}
+                      >
+                        <span className="w-5 h-5 flex items-center justify-center">
+                          {item.icon}
                         </span>
-                      )}
-                    </div>
+                        {sidebarOpen && (
+                          <span className="capitalize font-medium text-sm md:text-base">
+                            {item.name}
+                          </span>
+                        )}
+                      </div>
 
-                    {sidebarOpen &&
-                      item.children &&
-                      (expandedMenus[item.name] ? (
-                        <FiChevronUp className="w-4 h-4" />
-                      ) : (
-                        <FiChevronDown className="w-4 h-4" />
-                      ))}
-                  </motion.button>
+                      {sidebarOpen &&
+                        item.children &&
+                        (expandedMenus[item.name] ? (
+                          <FiChevronUp className="w-4 h-4" />
+                        ) : (
+                          <FiChevronDown className="w-4 h-4" />
+                        ))}
+                    </motion.button>
 
-                  <AnimatePresence>
-                    {expandedMenus[item.name] &&
-                      sidebarOpen &&
-                      item.children && (
-                        <motion.ul
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden ml-6 border-l border-gray-600 pl-3 mt-2"
-                        >
-                          {item.children.map((child, index) => (
-                            <motion.li
-                              key={child.name}
-                              whileHover={{ x: -2 }}
-                              className="mb-1"
-                            >
-                              <button
-                                onClick={() =>
-                                  handleChildItemClick(child.component)
-                                }
-                                className={`text-sm py-2.5 px-4 w-full text-left rounded-lg transition-colors ${
-                                  activeView === child.component
-                                    ? "bg-gradient-to-r from-purple-600/20 to-blue-600/20 text-white border border-purple-500/30 font-medium shadow-sm"
-                                    : "text-gray-400 hover:bg-gray-700 hover:text-white"
-                                } ${index === 0 ? "rounded-t-lg" : ""} ${
-                                  index === item.children.length - 1
-                                    ? "rounded-b-lg"
-                                    : ""
-                                }`}
+                    <AnimatePresence>
+                      {expandedMenus[item.name] &&
+                        sidebarOpen &&
+                        item.children && (
+                          <motion.ul
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden ml-6 border-l border-gray-600 pl-3 mt-2"
+                          >
+                            {item.children.map((child, index) => (
+                              <motion.li
+                                key={child.name}
+                                whileHover={{ x: -2 }}
+                                className="mb-1"
                               >
-                                {child.name}
-                              </button>
-                            </motion.li>
-                          ))}
-                        </motion.ul>
-                      )}
-                  </AnimatePresence>
-                </li>
-              ))}
+                                <button
+                                  onClick={() =>
+                                    handleChildItemClick(child.component)
+                                  }
+                                  className={`text-sm py-2.5 px-4 w-full text-left rounded-lg transition-colors ${
+                                    activeView === child.component
+                                      ? "bg-gradient-to-r from-purple-600/20 to-blue-600/20 text-white font-medium shadow-sm"
+                                      : "text-gray-400 hover:bg-gray-700 hover:text-white"
+                                  } ${index === 0 ? "rounded-t-lg" : ""} ${
+                                    index === item.children.length - 1
+                                      ? "rounded-b-lg"
+                                      : ""
+                                  }`}
+                                >
+                                  {child.name}
+                                </button>
+                              </motion.li>
+                            ))}
+                          </motion.ul>
+                        )}
+                    </AnimatePresence>
+                  </li>
+                );
+              })}
           </ul>
 
           {/* Premium Status */}

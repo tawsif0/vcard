@@ -1,16 +1,13 @@
-/* eslint-disable no-unused-vars */
-// components/ProfileRouteHandler.jsx
 import React, { useContext } from "react";
 import { useParams, Routes, Route, Navigate } from "react-router-dom";
-import AuthContext from "./AuthContext";
-import CardViewer from "../components/CardViewer";
-import Home from "../components/Premium/view/pages/Home";
-import About from "../components/Premium/view/pages/About/About";
-import Resume from "../components/Premium/view/pages/Resume/Resume";
-import Portfolio from "../components/Premium/view/pages/Portfolio";
-import Blog from "../components/Premium/view/pages/Blog";
-import Contact from "../components/Premium/view/pages/Contact";
-
+import AuthContext from "../../context/AuthContext";
+import CardViewer from "../Basic/Component/View/CardViewer";
+import Home from "../Premium/view/pages/Home";
+import About from "../Premium/view/pages/About/About";
+import Resume from "../Premium/view/pages/Resume/Resume";
+import Contact from "../Premium/view/pages/Contact";
+import Portfolio from "../Premium/view/pages/Portfolio";
+import Blog from "../Premium/view/pages/Blog";
 function ProfileRouteHandler() {
   const { userId } = useParams();
   const { user } = useContext(AuthContext);

@@ -24,10 +24,10 @@ import {
   FiCheck,
   FiRotateCw,
   FiZoomIn,
+  FiZoomOut
 } from "react-icons/fi";
 import { FaTiktok } from "react-icons/fa";
 import { MdImageNotSupported } from "react-icons/md";
-import { RiSparklingFill } from "react-icons/ri";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
 import axios from "axios";
@@ -38,41 +38,31 @@ import Modal from "react-modal";
 Modal.setAppElement("#root");
 
 // Image Cropper Component
-const ImageCropper = ({ isOpen, onClose, onCropComplete, aspect = 1 }) => {
-  const [src, setSrc] = useState(null);
-  const [image, setImage] = useState(null);
-  const [crop, setCrop] = useState({
-    unit: "%",
-    width: 50,
-    aspect,
-  });
+const ImageCropper = ({ src, isOpen, onClose, onCropComplete, aspect = 1 }) => {
+  const [crop, setCrop] = useState({ unit: "%", width: 50, aspect });
   const [completedCrop, setCompletedCrop] = useState(null);
+  const [image, setImage] = useState(null);
   const imgRef = useRef(null);
-  const fileInputRef = useRef(null);
-
-  const handleFileChange = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.addEventListener("load", () => {
-        setSrc(reader.result);
-        setCrop({ unit: "%", width: 50, aspect });
-      });
-      reader.readAsDataURL(file);
+  useEffect(() => {
+    if (!src) {
+      setImage(null);
+      setCrop({ unit: "%", width: 50, aspect });
+      setCompletedCrop(null);
     }
-  };
-
+  }, [src]);
   const onImageLoad = (img) => {
     setImage(img);
-    // Set initial crop to cover the image
-    const minDimension = Math.min(img.width, img.height);
-    setCrop({
-      unit: "px",
-      width: minDimension,
-      height: minDimension,
-      x: (img.width - minDimension) / 2,
-      y: (img.height - minDimension) / 2,
-    });
+    if (img.width && img.height) {
+      const minDimension = Math.min(img.width, img.height);
+      setCrop({
+        unit: "px",
+        width: minDimension,
+        height: minDimension,
+        x: (img.width - minDimension) / 2,
+        y: (img.height - minDimension) / 2,
+        aspect
+      });
+    }
   };
 
   const getCroppedImg = (image, crop, fileName) => {
@@ -139,8 +129,6 @@ const ImageCropper = ({ isOpen, onClose, onCropComplete, aspect = 1 }) => {
   };
 
   const handleClose = () => {
-    setSrc(null);
-    setImage(null);
     setCrop({ unit: "%", width: 50, aspect });
     setCompletedCrop(null);
     onClose();
@@ -158,28 +146,14 @@ const ImageCropper = ({ isOpen, onClose, onCropComplete, aspect = 1 }) => {
     }
   };
 
-  const zoomIn = () => {
-    setCrop((prev) => ({
-      ...prev,
-      width: Math.max(10, prev.width - 10),
-    }));
-  };
-
-  const zoomOut = () => {
-    setCrop((prev) => ({
-      ...prev,
-      width: Math.min(100, prev.width + 10),
-    }));
-  };
-
   return (
     <Modal
       isOpen={isOpen}
       onRequestClose={handleClose}
-      className="fixed inset-0 flex items-center justify-center z-50"
-      overlayClassName="fixed inset-0 bg-black bg-opacity-75 z-40"
+      className="fixed inset-0 flex items-center justify-center z-70"
+      overlayClassName="fixed inset-0 bg-black bg-opacity-75 z-70"
     >
-      <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-2xl mx-4 border border-gray-700">
+      <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-2xl mx-4">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-white">Crop Profile Picture</h2>
           <button
@@ -191,32 +165,14 @@ const ImageCropper = ({ isOpen, onClose, onCropComplete, aspect = 1 }) => {
         </div>
 
         {!src ? (
-          <div className="border-2 border-dashed border-gray-600 rounded-xl p-12 text-center">
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              accept="image/*"
-              className="hidden"
-            />
-            <div className="text-gray-400 mb-4">
-              <FiZoomIn className="w-12 h-12 mx-auto" />
-            </div>
-            <p className="text-gray-300 mb-4">Select an image to crop</p>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              Choose Image
-            </button>
-          </div>
+          <div>Select an image to crop.</div>
         ) : (
           <>
             <div className="mb-4 flex justify-center">
               <ReactCrop
                 crop={crop}
-                onChange={(newCrop) => setCrop(newCrop)}
-                onComplete={(c) => setCompletedCrop(c)}
+                onChange={setCrop}
+                onComplete={setCompletedCrop}
                 aspect={aspect}
                 circularCrop
                 className="max-h-96"
@@ -231,34 +187,14 @@ const ImageCropper = ({ isOpen, onClose, onCropComplete, aspect = 1 }) => {
               </ReactCrop>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
+              <div className="flex gap-2 mb-2 sm:mb-0">
                 <button
                   onClick={rotateImage}
                   className="p-2 bg-gray-800 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
                   title="Rotate"
                 >
                   <FiRotateCw className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={zoomIn}
-                  className="p-2 bg-gray-800 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
-                  title="Zoom In"
-                >
-                  <FiZoomIn className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={zoomOut}
-                  className="p-2 bg-gray-800 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
-                  title="Zoom Out"
-                >
-                  <FiZoomIn className="w-5 h-5 transform rotate-180" />
-                </button>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="px-4 py-2 bg-gray-800 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
-                >
-                  Change Image
                 </button>
               </div>
 
@@ -293,15 +229,16 @@ const HomeCard = ({ user }) => {
     city: "",
     profilePicture: null,
     profilePictureFile: null,
-    socialMedias: [],
+    socialMedias: []
   });
 
   const [selectedTemplate, setSelectedTemplate] = useState("influencer");
   const [savedProfile, setSavedProfile] = useState({});
   const [showImage, setShowImage] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [src, setSrc] = useState(null);
   const [cropModalOpen, setCropModalOpen] = useState(false);
-
+  const fileInputRef = useRef(null);
   const socialMediaOptions = [
     {
       value: "linkedin",
@@ -309,7 +246,7 @@ const HomeCard = ({ user }) => {
       icon: <FiLinkedin />,
       color: "text-blue-400",
       bgColor: "bg-blue-500/10",
-      borderColor: "border-blue-500/30",
+      borderColor: "border-blue-500/30"
     },
     {
       value: "facebook",
@@ -317,7 +254,7 @@ const HomeCard = ({ user }) => {
       icon: <FiFacebook />,
       color: "text-blue-600",
       bgColor: "bg-blue-600/10",
-      borderColor: "border-blue-600/30",
+      borderColor: "border-blue-600/30"
     },
     {
       value: "instagram",
@@ -325,7 +262,7 @@ const HomeCard = ({ user }) => {
       icon: <FiInstagram />,
       color: "text-pink-500",
       bgColor: "bg-pink-500/10",
-      borderColor: "border-pink-500/30",
+      borderColor: "border-pink-500/30"
     },
     {
       value: "twitter",
@@ -333,7 +270,7 @@ const HomeCard = ({ user }) => {
       icon: <FiTwitter />,
       color: "text-blue-400",
       bgColor: "bg-blue-400/10",
-      borderColor: "border-blue-400/30",
+      borderColor: "border-blue-400/30"
     },
     {
       value: "youtube",
@@ -341,7 +278,7 @@ const HomeCard = ({ user }) => {
       icon: <FiYoutube />,
       color: "text-red-500",
       bgColor: "bg-red-500/10",
-      borderColor: "border-red-500/30",
+      borderColor: "border-red-500/30"
     },
     {
       value: "github",
@@ -349,7 +286,7 @@ const HomeCard = ({ user }) => {
       icon: <FiGithub />,
       color: "text-gray-400",
       bgColor: "bg-gray-400/10",
-      borderColor: "border-gray-400/30",
+      borderColor: "border-gray-400/30"
     },
     {
       value: "tiktok",
@@ -357,7 +294,7 @@ const HomeCard = ({ user }) => {
       icon: <FaTiktok />,
       color: "text-white",
       bgColor: "bg-black/10",
-      borderColor: "border-white/20",
+      borderColor: "border-white/20"
     },
     {
       value: "custom",
@@ -365,8 +302,8 @@ const HomeCard = ({ user }) => {
       icon: <FiGlobe />,
       color: "text-purple-400",
       bgColor: "bg-purple-400/10",
-      borderColor: "border-purple-400/30",
-    },
+      borderColor: "border-purple-400/30"
+    }
   ];
 
   const API_BASE_URL =
@@ -383,8 +320,8 @@ const HomeCard = ({ user }) => {
 
       const response = await axios.get(`${API_BASE_URL}/homeCard/my-homecard`, {
         headers: {
-          "x-auth-token": token,
-        },
+          "x-auth-token": token
+        }
       });
 
       if (response.data.homeCard) {
@@ -410,7 +347,7 @@ const HomeCard = ({ user }) => {
                   homeCard.profileData.profilePicture
                 }`
               : null,
-            socialMedias: homeCard.profileData.socialMedias || [],
+            socialMedias: homeCard.profileData.socialMedias || []
           };
           setProfile(profileData);
           setSavedProfile(profileData);
@@ -428,15 +365,14 @@ const HomeCard = ({ user }) => {
   };
 
   const handleProfilePictureChange = (e) => {
-    if (!showImage) return;
-
     const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("Image size should be less than 5MB");
-        return;
-      }
-      setCropModalOpen(true);
+    if (file && file.size <= 5 * 1024 * 1024) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setSrc(reader.result); // 1. Set image src first
+        setCropModalOpen(true); // 2. Open modal only AFTER src is set
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -444,13 +380,13 @@ const HomeCard = ({ user }) => {
     // Create a File object from the blob
     const croppedFile = new File([croppedImageBlob], "profile-picture.jpg", {
       type: "image/jpeg",
-      lastModified: Date.now(),
+      lastModified: Date.now()
     });
 
     setProfile({
       ...profile,
       profilePicture: croppedImageUrl,
-      profilePictureFile: croppedFile,
+      profilePictureFile: croppedFile
     });
   };
 
@@ -462,7 +398,7 @@ const HomeCard = ({ user }) => {
     setProfile({
       ...profile,
       profilePicture: null,
-      profilePictureFile: null,
+      profilePictureFile: null
     });
     setCropModalOpen(false);
   };
@@ -488,7 +424,7 @@ const HomeCard = ({ user }) => {
   const addSocialMedia = () => {
     setProfile({
       ...profile,
-      socialMedias: [...profile.socialMedias, { platform: "", url: "" }],
+      socialMedias: [...profile.socialMedias, { platform: "", url: "" }]
     });
   };
 
@@ -527,8 +463,8 @@ const HomeCard = ({ user }) => {
         {
           headers: {
             "x-auth-token": token,
-            "Content-Type": "multipart/form-data",
-          },
+            "Content-Type": "multipart/form-data"
+          }
         }
       );
 
@@ -548,7 +484,7 @@ const HomeCard = ({ user }) => {
       setProfile({
         ...profile,
         profilePicture: null,
-        profilePictureFile: null,
+        profilePictureFile: null
       });
     }
   };
@@ -566,7 +502,7 @@ const HomeCard = ({ user }) => {
       const renderer = new THREE.WebGLRenderer({
         canvas: canvasRef.current,
         alpha: true,
-        antialias: true,
+        antialias: true
       });
 
       renderer.setSize(300, 180);
@@ -590,7 +526,7 @@ const HomeCard = ({ user }) => {
         size: 0.02,
         color: 0xffffff,
         transparent: true,
-        opacity: 0.6,
+        opacity: 0.6
       });
 
       const particlesMesh = new THREE.Points(
@@ -642,39 +578,6 @@ const HomeCard = ({ user }) => {
                     </div>
                   )}
                 </div>
-
-                {/* Floating social icons */}
-                {profile.socialMedias.slice(0, 4).map(
-                  (social, index) =>
-                    social.platform &&
-                    social.url && (
-                      <div
-                        key={index}
-                        className={`absolute w-4 h-4 bg-white/95 rounded-full flex items-center justify-center shadow-md border border-white/40 ${
-                          index === 0
-                            ? "-top-1 -right-1"
-                            : index === 1
-                            ? "-bottom-1 -left-1"
-                            : index === 2
-                            ? "top-0 -left-2"
-                            : "-bottom-1 right-1"
-                        }`}
-                      >
-                        <a
-                          href={social.url}
-                          className="flex items-center justify-center w-full h-full text-gray-800 text-[6px]"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {
-                            socialMediaOptions.find(
-                              (opt) => opt.value === social.platform
-                            )?.icon
-                          }
-                        </a>
-                      </div>
-                    )
-                )}
               </div>
             </div>
 
@@ -709,6 +612,32 @@ const HomeCard = ({ user }) => {
                   </span>
                 </div>
               </div>
+              {profile.socialMedias.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {profile.socialMedias.map(
+                    (social, index) =>
+                      social.platform &&
+                      social.url && (
+                        <a
+                          key={index}
+                          href={social.url}
+                          className="w-6 h-6 text-[10px] bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-all border border-white/20"
+                          title={
+                            socialMediaOptions.find(
+                              (opt) => opt.value === social.platform
+                            )?.label
+                          }
+                        >
+                          {
+                            socialMediaOptions.find(
+                              (opt) => opt.value === social.platform
+                            )?.icon
+                          }
+                        </a>
+                      )
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -979,65 +908,6 @@ const HomeCard = ({ user }) => {
     </div>
   );
 
-  const TemplateGlass = () => (
-    <div className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-xl p-8 text-white shadow-2xl border border-white/10 w-full max-w-sm mx-auto relative overflow-hidden backdrop-blur-md">
-      <div className="relative z-10">
-        <div className="flex items-start justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-white mb-1">
-              {profile.fullName || "Your Name"}
-            </h1>
-            <p className="text-purple-300 text-sm font-medium">
-              {profile.designation || "Professional"}
-            </p>
-          </div>
-          {showImage && (
-            <div className="w-16 h-16 rounded-xl border-2 border-white/20 overflow-hidden bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-sm">
-              {profile.profilePicture ? (
-                <img
-                  src={profile.profilePicture}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <FiUser className="w-6 h-6 text-white/60" />
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-3 mb-6">
-          <div className="flex items-center gap-3 text-white/80">
-            <FiMapPin className="w-4 h-4 text-purple-400" />
-            <span className="text-sm">{profile.city || "Your City"}</span>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap justify-center gap-2">
-          {profile.socialMedias.map(
-            (social, index) =>
-              social.platform &&
-              social.url && (
-                <a
-                  key={index}
-                  href={social.url}
-                  className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-all border border-white/10 backdrop-blur-sm"
-                >
-                  {
-                    socialMediaOptions.find(
-                      (opt) => opt.value === social.platform
-                    )?.icon
-                  }
-                </a>
-              )
-          )}
-        </div>
-      </div>
-    </div>
-  );
-
   const TemplateNeonGlow = () => (
     <div className="bg-gradient-to-br from-purple-900 via-black to-blue-900 rounded-xl p-8 text-white shadow-2xl border border-purple-500/30 w-full max-w-sm mx-auto relative overflow-hidden">
       <div className="relative z-10 text-center">
@@ -1272,8 +1142,6 @@ const HomeCard = ({ user }) => {
         return <TemplateMinimalist />;
       case "creative":
         return <TemplateCreative />;
-      case "glass":
-        return <TemplateGlass />;
       case "neon":
         return <TemplateNeonGlow />;
       case "cyberpunk":
@@ -1293,11 +1161,10 @@ const HomeCard = ({ user }) => {
     { id: "executive", name: "Executive", component: <TemplateExecutive /> },
     { id: "minimalist", name: "Minimalist", component: <TemplateMinimalist /> },
     { id: "creative", name: "Creative", component: <TemplateCreative /> },
-    { id: "glass", name: "Glass", component: <TemplateGlass /> },
     { id: "neon", name: "Neon Glow", component: <TemplateNeonGlow /> },
     { id: "cyberpunk", name: "Cyberpunk", component: <TemplateCyberpunk /> },
     { id: "luxury", name: "Luxury Gold", component: <TemplateLuxuryGold /> },
-    { id: "minimal", name: "Minimal Dark", component: <TemplateMinimalDark /> },
+    { id: "minimal", name: "Minimal Dark", component: <TemplateMinimalDark /> }
   ];
 
   return (
@@ -1349,6 +1216,7 @@ const HomeCard = ({ user }) => {
                     <FiCamera className="h-5 w-5" />
                     <input
                       type="file"
+                      ref={fileInputRef}
                       onChange={handleProfilePictureChange}
                       className="hidden"
                       accept="image/*"
@@ -1390,12 +1258,12 @@ const HomeCard = ({ user }) => {
                 <motion.div
                   className="absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md"
                   animate={{
-                    x: showImage ? 28 : 0,
+                    x: showImage ? 28 : 0
                   }}
                   transition={{
                     type: "spring",
                     stiffness: 500,
-                    damping: 30,
+                    damping: 30
                   }}
                 />
               </button>
@@ -1595,10 +1463,11 @@ const HomeCard = ({ user }) => {
 
       {/* Image Cropper Modal */}
       <ImageCropper
+        src={src}
         isOpen={cropModalOpen}
         onClose={() => setCropModalOpen(false)}
         onCropComplete={handleCropComplete}
-        aspect={1} // 1:1 ratio for circular profile pictures
+        aspect={1}
       />
     </div>
   );
