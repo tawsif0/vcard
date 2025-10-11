@@ -38,18 +38,31 @@ import Modal from "react-modal";
 Modal.setAppElement("#root");
 
 // Image Cropper Component
-const ImageCropper = ({ src, isOpen, onClose, onCropComplete, aspect = 1 }) => {
-  const [crop, setCrop] = useState({ unit: "%", width: 50, aspect });
+const ImageCropper = ({ isOpen, onClose, onCropComplete, aspect = 1 }) => {
+  const [src, setSrc] = useState(null);
+  const [image, setImage] = useState(null);
+  const [crop, setCrop] = useState({
+    unit: "%",
+    width: 50,
+    aspect,
+  });
   const [completedCrop, setCompletedCrop] = useState(null);
   const [image, setImage] = useState(null);
   const imgRef = useRef(null);
-  useEffect(() => {
-    if (!src) {
-      setImage(null);
-      setCrop({ unit: "%", width: 50, aspect });
-      setCompletedCrop(null);
+  const fileInputRef = useRef(null);
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        setSrc(reader.result);
+        setCrop({ unit: "%", width: 50, aspect });
+      });
+      reader.readAsDataURL(file);
     }
-  }, [src]);
+  };
+
   const onImageLoad = (img) => {
     setImage(img);
     if (img.width && img.height) {
@@ -165,7 +178,25 @@ const ImageCropper = ({ src, isOpen, onClose, onCropComplete, aspect = 1 }) => {
         </div>
 
         {!src ? (
-          <div>Select an image to crop.</div>
+          <div className="border-2 border-dashed border-gray-600 rounded-xl p-12 text-center">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/*"
+              className="hidden"
+            />
+            <div className="text-gray-400 mb-4">
+              <FiZoomIn className="w-12 h-12 mx-auto" />
+            </div>
+            <p className="text-gray-300 mb-4">Select an image to crop</p>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Choose Image
+            </button>
+          </div>
         ) : (
           <>
             <div className="mb-4 flex justify-center">
@@ -195,6 +226,26 @@ const ImageCropper = ({ src, isOpen, onClose, onCropComplete, aspect = 1 }) => {
                   title="Rotate"
                 >
                   <FiRotateCw className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={zoomIn}
+                  className="p-2 bg-gray-800 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
+                  title="Zoom In"
+                >
+                  <FiZoomIn className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={zoomOut}
+                  className="p-2 bg-gray-800 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
+                  title="Zoom Out"
+                >
+                  <FiZoomIn className="w-5 h-5 transform rotate-180" />
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-4 py-2 bg-gray-800 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
+                >
+                  Change Image
                 </button>
               </div>
 
@@ -238,7 +289,7 @@ const HomeCard = ({ user }) => {
   const [saving, setSaving] = useState(false);
   const [src, setSrc] = useState(null);
   const [cropModalOpen, setCropModalOpen] = useState(false);
-  const fileInputRef = useRef(null);
+
   const socialMediaOptions = [
     {
       value: "linkedin",
@@ -366,13 +417,12 @@ const HomeCard = ({ user }) => {
 
   const handleProfilePictureChange = (e) => {
     const file = e.target.files[0];
-    if (file && file.size <= 5 * 1024 * 1024) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setSrc(reader.result); // 1. Set image src first
-        setCropModalOpen(true); // 2. Open modal only AFTER src is set
-      };
-      reader.readAsDataURL(file);
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image size should be less than 5MB");
+        return;
+      }
+      setCropModalOpen(true);
     }
   };
 
@@ -388,6 +438,9 @@ const HomeCard = ({ user }) => {
       profilePicture: croppedImageUrl,
       profilePictureFile: croppedFile
     });
+
+    // Clear the selected file after cropping
+    setSelectedFile(null);
   };
 
   const removeProfilePicture = () => {
@@ -401,6 +454,7 @@ const HomeCard = ({ user }) => {
       profilePictureFile: null
     });
     setCropModalOpen(false);
+    setSelectedFile(null);
   };
 
   useEffect(() => {
@@ -1467,7 +1521,7 @@ const HomeCard = ({ user }) => {
         isOpen={cropModalOpen}
         onClose={() => setCropModalOpen(false)}
         onCropComplete={handleCropComplete}
-        aspect={1}
+        aspect={1} // 1:1 ratio for circular profile pictures
       />
     </div>
   );
